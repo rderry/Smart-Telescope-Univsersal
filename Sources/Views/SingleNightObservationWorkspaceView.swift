@@ -451,9 +451,10 @@ struct SingleNightObservationWorkspaceView: View {
             VStack(alignment: .leading, spacing: 10) {
                 centeredTargetFilterCard(maxHeight: targetFilterMaximumHeight(for: proxy.size.height, compact: false))
                 centeredTargetSelectionCard
+                Spacer(minLength: 0)
             }
             .padding(.trailing, 18)
-            .frame(maxWidth: .infinity, minHeight: sidebarHeight, maxHeight: sidebarHeight, alignment: .topLeading)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
         .padding(.horizontal, 18)
         .padding(.bottom, 8)
@@ -799,7 +800,8 @@ struct SingleNightObservationWorkspaceView: View {
 
     private var centeredTargetSelectionCard: some View {
         targetSelectionCard
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+            .padding(.top, 6)
+            .frame(maxWidth: .infinity, alignment: .top)
     }
 
     private func centeredTargetFilterCard(maxHeight: CGFloat) -> some View {
@@ -1131,12 +1133,13 @@ struct SingleNightObservationWorkspaceView: View {
             } else {
                 targetSelectionHeaderControls
                     .frame(maxWidth: .infinity, alignment: .center)
+                    .padding(.bottom, 6)
 
                 targetFeedList
             }
         }
         .padding(10)
-        .frame(maxWidth: contentCardMaxWidth, maxHeight: .infinity, alignment: .topLeading)
+        .frame(maxWidth: contentCardMaxWidth, alignment: .topLeading)
         .background(singleNightCardBackground())
     }
 
