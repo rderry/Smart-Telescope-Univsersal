@@ -322,6 +322,7 @@ struct SingleNightObservationWorkspaceView: View {
     private let heroMetricTitleFont = Font.system(size: 12, weight: .bold, design: .rounded)
     private let heroMetricBodyFont = Font.system(size: 14, weight: .semibold, design: .rounded)
     private let heroMetricCaptionFont = Font.system(size: 12, weight: .semibold, design: .rounded)
+    private let cardHeadingTitleFont = Font.system(size: 16, weight: .bold, design: .rounded)
     private let labelColor = Color.yellow
     private let observationTimeTextColor = Color(red: 0.24, green: 0.58, blue: 1.0)
     private let sidebarWidth: CGFloat = 320
@@ -441,18 +442,18 @@ struct SingleNightObservationWorkspaceView: View {
     }
 
     private func wideSingleNightContent(proxy: GeometryProxy) -> some View {
-        HStack(alignment: .top, spacing: 12) {
-            currentListSidebar(height: sidebarHeight(for: proxy.size.height))
+        let sidebarHeight = sidebarHeight(for: proxy.size.height)
+
+        return HStack(alignment: .top, spacing: 12) {
+            currentListSidebar(height: sidebarHeight)
                 .frame(width: sidebarWidth)
 
             VStack(alignment: .leading, spacing: 10) {
                 centeredTargetFilterCard(maxHeight: targetFilterMaximumHeight(for: proxy.size.height, compact: false))
                 centeredTargetSelectionCard
-                Spacer(minLength: 0)
             }
             .padding(.trailing, 18)
-            .padding(.bottom, 52)
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            .frame(maxWidth: .infinity, minHeight: sidebarHeight, maxHeight: sidebarHeight, alignment: .topLeading)
         }
         .padding(.horizontal, 18)
         .padding(.bottom, 8)
@@ -534,9 +535,9 @@ struct SingleNightObservationWorkspaceView: View {
     }
 
     private func targetFilterMaximumHeight(for availableHeight: CGFloat, compact: Bool) -> CGFloat {
-        let reservedHeight: CGFloat = compact ? 560 : 470
-        let minimumHeight: CGFloat = compact ? 270 : 270
-        let maximumHeight: CGFloat = compact ? 380 : 340
+        let reservedHeight: CGFloat = compact ? 540 : 430
+        let minimumHeight: CGFloat = compact ? 300 : 300
+        let maximumHeight: CGFloat = compact ? 420 : 390
         return min(max(availableHeight - reservedHeight, minimumHeight), maximumHeight)
     }
 
@@ -798,7 +799,7 @@ struct SingleNightObservationWorkspaceView: View {
 
     private var centeredTargetSelectionCard: some View {
         targetSelectionCard
-            .frame(maxWidth: .infinity, alignment: .top)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
     }
 
     private func centeredTargetFilterCard(maxHeight: CGFloat) -> some View {
@@ -1135,7 +1136,7 @@ struct SingleNightObservationWorkspaceView: View {
             }
         }
         .padding(10)
-        .frame(maxWidth: contentCardMaxWidth, alignment: .topLeading)
+        .frame(maxWidth: contentCardMaxWidth, maxHeight: .infinity, alignment: .topLeading)
         .background(singleNightCardBackground())
     }
 
@@ -2343,7 +2344,7 @@ struct SingleNightObservationWorkspaceView: View {
 
         return VStack(alignment: horizontalAlignment, spacing: 6) {
             Text(title)
-                .font(compactStrongFont)
+                .font(centered ? cardHeadingTitleFont : compactStrongFont)
                 .foregroundStyle(labelColor.opacity(0.92))
                 .multilineTextAlignment(textAlignment)
                 .frame(maxWidth: .infinity, alignment: frameAlignment)
@@ -2520,7 +2521,7 @@ struct SingleNightObservationWorkspaceView: View {
         VStack(alignment: .center, spacing: 4) {
             Text("VIEWING INFO")
                 .font(heroMetricTitleFont)
-                .foregroundStyle(.white.opacity(0.95))
+                .foregroundStyle(labelColor.opacity(0.92))
                 .multilineTextAlignment(.center)
 
             Text(
@@ -2603,7 +2604,7 @@ struct SingleNightObservationWorkspaceView: View {
         VStack(alignment: .center, spacing: 4) {
             Text("WEATHER AT SUNSET")
                 .font(heroMetricTitleFont)
-                .foregroundStyle(.white.opacity(0.95))
+                .foregroundStyle(labelColor.opacity(0.92))
                 .multilineTextAlignment(.center)
 
             if isLoadingObservationWeather {
@@ -2658,7 +2659,7 @@ struct SingleNightObservationWorkspaceView: View {
         VStack(alignment: .center, spacing: 4) {
             Text("WEATHER / SUNRISE SOURCE")
                 .font(heroMetricTitleFont)
-                .foregroundStyle(.white.opacity(0.95))
+                .foregroundStyle(labelColor.opacity(0.92))
                 .multilineTextAlignment(.center)
 
             if isResolvingObservationCountry {
