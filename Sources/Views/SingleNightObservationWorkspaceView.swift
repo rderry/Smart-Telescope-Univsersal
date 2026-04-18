@@ -319,11 +319,14 @@ struct SingleNightObservationWorkspaceView: View {
     private let compactStrongFont = Font.system(size: 14, weight: .semibold, design: .rounded)
     private let compactSelectorLabelFont = Font.system(size: 12, weight: .semibold, design: .rounded)
     private let compactCaptionFont = Font.system(size: 11, weight: .semibold, design: .rounded)
+    private let heroMetricTitleFont = Font.system(size: 12, weight: .bold, design: .rounded)
+    private let heroMetricBodyFont = Font.system(size: 14, weight: .semibold, design: .rounded)
+    private let heroMetricCaptionFont = Font.system(size: 12, weight: .semibold, design: .rounded)
     private let labelColor = Color.yellow
     private let observationTimeTextColor = Color(red: 0.24, green: 0.58, blue: 1.0)
     private let sidebarWidth: CGFloat = 320
     private let contentCardMaxWidth: CGFloat = .infinity
-    private let targetFeedVisibleHeight: CGFloat = 106
+    private let targetFeedVisibleHeight: CGFloat = 86
     private let heroMetricWidth: CGFloat = 248
     private let heroMetricHeight: CGFloat = 116
     private let transientFilterLabel = "Transient"
@@ -348,8 +351,8 @@ struct SingleNightObservationWorkspaceView: View {
             .modifier(singleNightLifecycleModifier)
             .sheet(isPresented: $saveListPromptIsPresented) {
                 SingleNightSaveListSheet(
-                    title: "Save For Later Use",
-                    subtitle: "Create a named list of your selected targets so you can reuse them in a future plan.",
+                    title: "Save for Multi-Night Observation",
+                    subtitle: "Name this target list and store it in the Saved Lists Database for multi-night observation planning.",
                     locationName: selectedLocation?.name,
                     targetCount: addedTargets.count,
                     name: $saveListNameDraft
@@ -448,7 +451,7 @@ struct SingleNightObservationWorkspaceView: View {
                 Spacer(minLength: 0)
             }
             .padding(.trailing, 18)
-            .padding(.bottom, 12)
+            .padding(.bottom, 52)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
         .padding(.horizontal, 18)
@@ -464,7 +467,7 @@ struct SingleNightObservationWorkspaceView: View {
             Spacer(minLength: 0)
         }
         .padding(.horizontal, 18)
-        .padding(.bottom, 12)
+        .padding(.bottom, 52)
         .frame(maxWidth: 1180, alignment: .leading)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
     }
@@ -527,13 +530,13 @@ struct SingleNightObservationWorkspaceView: View {
     }
 
     private func sidebarHeight(for availableHeight: CGFloat) -> CGFloat {
-        min(max(availableHeight - 214, 420), max(420, availableHeight - 92))
+        min(max(availableHeight - 278, 300), max(300, availableHeight - 142))
     }
 
     private func targetFilterMaximumHeight(for availableHeight: CGFloat, compact: Bool) -> CGFloat {
-        let reservedHeight: CGFloat = compact ? 540 : 430
-        let minimumHeight: CGFloat = compact ? 300 : 300
-        let maximumHeight: CGFloat = compact ? 420 : 390
+        let reservedHeight: CGFloat = compact ? 560 : 470
+        let minimumHeight: CGFloat = compact ? 270 : 270
+        let maximumHeight: CGFloat = compact ? 380 : 340
         return min(max(availableHeight - reservedHeight, minimumHeight), maximumHeight)
     }
 
@@ -751,7 +754,13 @@ struct SingleNightObservationWorkspaceView: View {
                 Button {
                     promptSaveCurrentListForLaterUse()
                 } label: {
-                    Label("Save For Later Use", systemImage: "tray.and.arrow.down")
+                    Label {
+                        Text("Save for Multi-Night Observation")
+                            .lineLimit(2)
+                            .multilineTextAlignment(.center)
+                    } icon: {
+                        Image(systemName: "tray.and.arrow.down")
+                    }
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.bordered)
@@ -2164,7 +2173,7 @@ struct SingleNightObservationWorkspaceView: View {
         do {
             try modelContext.save()
             saveListPromptIsPresented = false
-            savedListStatusMessage = "Saved \"\(trimmedName)\" with \(items.count) targets."
+            savedListStatusMessage = "Saved \"\(trimmedName)\" to the Saved Lists Database with \(items.count) targets for multi-night observation."
         } catch {
             savedListStatusMessage = "Unable to save the list: \(error.localizedDescription)"
         }
@@ -2510,23 +2519,24 @@ struct SingleNightObservationWorkspaceView: View {
     private var viewingInfoMetricBlock: some View {
         VStack(alignment: .center, spacing: 4) {
             Text("VIEWING INFO")
-                .font(compactCaptionFont)
-                .foregroundStyle(labelColor.opacity(0.82))
+                .font(heroMetricTitleFont)
+                .foregroundStyle(.white.opacity(0.95))
                 .multilineTextAlignment(.center)
 
             Text(
                 "Sun Below Horizon \(formattedSolarEvent(solarEvents.start)) to \(formattedSolarEvent(solarEvents.end))"
             )
-                .font(compactBodyFont)
-                .foregroundStyle(.black.opacity(0.88))
+                .font(heroMetricBodyFont)
+                .foregroundStyle(.white)
                 .fixedSize(horizontal: false, vertical: true)
                 .multilineTextAlignment(.center)
+                .minimumScaleFactor(0.76)
 
             Text(
                 "Sun Below Horizon GMT \(formattedSolarEventGMT(solarEvents.start)) to \(formattedSolarEventGMT(solarEvents.end))"
             )
-                .font(compactCaptionFont)
-                .foregroundStyle(.black.opacity(0.78))
+                .font(heroMetricCaptionFont)
+                .foregroundStyle(.white.opacity(0.92))
                 .lineLimit(1)
                 .minimumScaleFactor(0.70)
                 .multilineTextAlignment(.center)
@@ -2592,8 +2602,8 @@ struct SingleNightObservationWorkspaceView: View {
     private var observationWeatherMetricBlock: some View {
         VStack(alignment: .center, spacing: 4) {
             Text("WEATHER AT SUNSET")
-                .font(compactCaptionFont)
-                .foregroundStyle(labelColor.opacity(0.82))
+                .font(heroMetricTitleFont)
+                .foregroundStyle(.white.opacity(0.95))
                 .multilineTextAlignment(.center)
 
             if isLoadingObservationWeather {
@@ -2603,11 +2613,11 @@ struct SingleNightObservationWorkspaceView: View {
                 HStack(spacing: 5) {
                     Image(systemName: cloudSymbolName(for: observationWeatherSnapshot.cloudCoverPercent))
                         .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(.black.opacity(0.72))
+                        .foregroundStyle(.white.opacity(0.94))
 
                     Text("Cloud \(observationWeatherSnapshot.cloudCoverPercent)%")
-                        .font(compactBodyFont)
-                        .foregroundStyle(.black.opacity(0.88))
+                        .font(heroMetricBodyFont)
+                        .foregroundStyle(.white)
                         .lineLimit(1)
                 }
                 .fixedSize(horizontal: false, vertical: true)
@@ -2615,16 +2625,18 @@ struct SingleNightObservationWorkspaceView: View {
                 Text(
                     "Sunset \(formattedTemperature(observationWeatherSnapshot.sunsetTemperatureFahrenheit)) • Low \(formattedTemperature(observationWeatherSnapshot.overnightLowTemperatureFahrenheit))"
                 )
-                .font(compactCaptionFont)
-                .foregroundStyle(.black.opacity(0.74))
+                .font(heroMetricCaptionFont)
+                .foregroundStyle(.white.opacity(0.90))
                 .fixedSize(horizontal: false, vertical: true)
                 .multilineTextAlignment(.center)
+                .minimumScaleFactor(0.76)
             } else {
                 Text(observationWeatherMessage.isEmpty ? "Forecast unavailable" : observationWeatherMessage)
-                    .font(compactCaptionFont)
-                    .foregroundStyle(.black.opacity(0.74))
+                    .font(heroMetricCaptionFont)
+                    .foregroundStyle(.white.opacity(0.90))
                     .fixedSize(horizontal: false, vertical: true)
                     .multilineTextAlignment(.center)
+                    .minimumScaleFactor(0.76)
             }
         }
     }
@@ -2645,8 +2657,8 @@ struct SingleNightObservationWorkspaceView: View {
     private var weatherSourceMetricBlock: some View {
         VStack(alignment: .center, spacing: 4) {
             Text("WEATHER / SUNRISE SOURCE")
-                .font(compactCaptionFont)
-                .foregroundStyle(labelColor.opacity(0.82))
+                .font(heroMetricTitleFont)
+                .foregroundStyle(.white.opacity(0.95))
                 .multilineTextAlignment(.center)
 
             if isResolvingObservationCountry {
@@ -2654,17 +2666,19 @@ struct SingleNightObservationWorkspaceView: View {
                     .controlSize(.small)
             } else {
                 Text(weatherSource.name)
-                    .font(compactBodyFont)
-                    .foregroundStyle(.black.opacity(0.88))
+                    .font(heroMetricBodyFont)
+                    .foregroundStyle(.white)
                     .fixedSize(horizontal: false, vertical: true)
                     .multilineTextAlignment(.center)
+                    .minimumScaleFactor(0.76)
             }
 
             Text(weatherSourceSubtitle)
-                .font(compactCaptionFont)
-                .foregroundStyle(.black.opacity(0.74))
+                .font(heroMetricCaptionFont)
+                .foregroundStyle(.white.opacity(0.90))
                 .fixedSize(horizontal: false, vertical: true)
                 .multilineTextAlignment(.center)
+                .minimumScaleFactor(0.76)
         }
     }
 
