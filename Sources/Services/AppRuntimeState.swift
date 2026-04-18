@@ -31,10 +31,16 @@ enum InternetConnectivityChecker {
     }
 }
 
+struct SingleNightTargetObservationPeriod: Equatable {
+    var start: Date?
+    var end: Date?
+}
+
 struct SingleNightObservationDraft {
     var selectedLocationID: UUID?
     var selectedTargetID: String?
     var addedTargetIDs: [String]
+    var targetObservationPeriods: [String: SingleNightTargetObservationPeriod]
     var observationDateTime: Date
     var observationTimeZoneIdentifier: String
     var telescopeCaptureStartOverrideDate: Date?

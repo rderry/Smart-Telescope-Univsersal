@@ -231,6 +231,7 @@ private struct SingleNightLifecycleModifier: ViewModifier {
     let targetSkyLimitTexts: [String]
     let selectedTargetID: String?
     let addedTargetIDs: [String]
+    let targetObservationPeriods: [String: SingleNightTargetObservationPeriod]
     let weatherSourceRequestKey: String
     let observationWeatherRequestKey: String
     let onAppearAction: () -> Void
@@ -262,6 +263,7 @@ private struct SingleNightLifecycleModifier: ViewModifier {
             .onChange(of: targetSkyLimitTexts) { _, _ in onFilterInputsChanged() }
             .onChange(of: selectedTargetID) { _, _ in onSelectedTargetChanged() }
             .onChange(of: addedTargetIDs) { _, _ in onAddedTargetsChanged() }
+            .onChange(of: targetObservationPeriods) { _, _ in onAddedTargetsChanged() }
             .task(id: weatherSourceRequestKey) { await onRefreshWeatherSource() }
             .task(id: observationWeatherRequestKey) { await onRefreshObservationWeather() }
             .onDisappear(perform: onDisappearAction)
@@ -284,6 +286,7 @@ struct SingleNightObservationWorkspaceView: View {
     @State private var selectedLocationID: UUID?
     @State private var selectedTargetID: String?
     @State private var addedTargetIDs: [String] = []
+    @State private var targetObservationPeriods: [String: SingleNightTargetObservationPeriod] = [:]
     @State private var observationDateTime = Date()
     @State private var observationTimeZoneIdentifier = TimeZone.current.identifier
     @State private var telescopeCaptureStartOverrideDate: Date?
@@ -300,6 +303,7 @@ struct SingleNightObservationWorkspaceView: View {
     @State private var usesVisibilityFilter = false
     @State private var locationPickerIsPresented = false
     @State private var locationPickerSelectionID: UUID?
+    @State private var observationPeriodPromptTarget: SingleNightTargetChoice?
     @State private var hasInitializedTargetTypeSelection = false
     @State private var didManuallyAdjustTargetTypes = false
     @State private var isRefreshingTargetDatabase = false
@@ -375,6 +379,22 @@ struct SingleNightObservationWorkspaceView: View {
                     }
                 )
             }
+            .sheet(item: $observationPeriodPromptTarget) { target in
+                SingleNightObservationPeriodSheet(
+                    target: target,
+                    referenceDate: referenceDate,
+                    timeZone: observationTimeZone,
+                    defaultMeridiem: observationMeridiem,
+                    onCancel: {
+                        observationPeriodPromptTarget = nil
+                    },
+                    onContinue: { period in
+                        addTargetToCurrentList(target, observationPeriod: period)
+                        selectedTargetID = nextAvailableTargetID(after: target.id)
+                        observationPeriodPromptTarget = nil
+                    }
+                )
+            }
             .alert("Saved Lists", isPresented: savedListAlertIsPresented) {
                 Button("OK") {
                     savedListStatusMessage = nil
@@ -398,6 +418,7 @@ struct SingleNightObservationWorkspaceView: View {
             targetSkyLimitTexts: targetSkyLimitTexts,
             selectedTargetID: selectedTargetID,
             addedTargetIDs: addedTargetIDs,
+            targetObservationPeriods: targetObservationPeriods,
             weatherSourceRequestKey: weatherSourceRequestKey,
             observationWeatherRequestKey: observationWeatherRequestKey,
             onAppearAction: handleSingleNightAppear,
@@ -705,6 +726,12 @@ struct SingleNightObservationWorkspaceView: View {
                                 Text("Source: \(target.sourceLabel)")
                                     .font(compactCaptionFont)
                                     .foregroundStyle(.white.opacity(0.72))
+                                    .lineLimit(1)
+                                    .minimumScaleFactor(0.72)
+
+                                Text(observationPeriodSummary(for: target.id))
+                                    .font(compactCaptionFont)
+                                    .foregroundStyle(.white.opacity(0.78))
                                     .lineLimit(1)
                                     .minimumScaleFactor(0.72)
                             }
@@ -1711,6 +1738,7 @@ struct SingleNightObservationWorkspaceView: View {
     private func syncAddedTargets() {
         let validIDs = Set(allTargets.map(\.id))
         addedTargetIDs.removeAll { !validIDs.contains($0) }
+        targetObservationPeriods = targetObservationPeriods.filter { validIDs.contains($0.key) }
     }
 
     private func syncSelectedTargetTypes() {
@@ -1833,8 +1861,7 @@ struct SingleNightObservationWorkspaceView: View {
             let target = targetChoice(for: currentTargetID)
         else { return }
 
-        addTargetToCurrentList(target)
-        selectedTargetID = nextAvailableTargetID(after: currentTargetID)
+        presentObservationPeriodPrompt(for: target)
     }
 
     private func targetObservationListBinding(for target: SingleNightTargetChoice) -> Binding<Bool> {
@@ -1843,7 +1870,7 @@ struct SingleNightObservationWorkspaceView: View {
             set: { isAdded in
                 selectedTargetID = target.id
                 if isAdded {
-                    addTargetToCurrentList(target)
+                    presentObservationPeriodPrompt(for: target)
                 } else {
                     removeTargetFromCurrentList(target.id)
                 }
@@ -1851,9 +1878,22 @@ struct SingleNightObservationWorkspaceView: View {
         )
     }
 
-    private func addTargetToCurrentList(_ target: SingleNightTargetChoice) {
+    private func presentObservationPeriodPrompt(for target: SingleNightTargetChoice) {
+        guard !addedTargetIDs.contains(target.id) else { return }
+        observationPeriodPromptTarget = target
+    }
+
+    private func addTargetToCurrentList(
+        _ target: SingleNightTargetChoice,
+        observationPeriod: SingleNightTargetObservationPeriod?
+    ) {
         guard !addedTargetIDs.contains(target.id) else { return }
         retainTargetLocally(target)
+        if let observationPeriod {
+            targetObservationPeriods[target.id] = observationPeriod
+        } else {
+            targetObservationPeriods.removeValue(forKey: target.id)
+        }
         addedTargetIDs.append(target.id)
     }
 
@@ -1863,6 +1903,7 @@ struct SingleNightObservationWorkspaceView: View {
         }
 
         addedTargetIDs.removeAll { $0 == targetID }
+        targetObservationPeriods.removeValue(forKey: targetID)
     }
 
     private func clearCurrentList() {
@@ -1870,6 +1911,7 @@ struct SingleNightObservationWorkspaceView: View {
             .compactMap { targetChoice(for: $0) }
             .forEach(releaseTargetLocalRetention)
         addedTargetIDs.removeAll()
+        targetObservationPeriods.removeAll()
     }
 
     private func targetChoice(for targetID: String) -> SingleNightTargetChoice? {
@@ -1911,6 +1953,7 @@ struct SingleNightObservationWorkspaceView: View {
         selectedLocationID = draft.selectedLocationID
         selectedTargetID = draft.selectedTargetID
         addedTargetIDs = draft.addedTargetIDs
+        targetObservationPeriods = draft.targetObservationPeriods
         observationDateTime = draft.observationDateTime
         observationTimeZoneIdentifier = draft.observationTimeZoneIdentifier
         telescopeCaptureStartOverrideDate = draft.telescopeCaptureStartOverrideDate
@@ -1930,6 +1973,7 @@ struct SingleNightObservationWorkspaceView: View {
             selectedLocationID: selectedLocationID,
             selectedTargetID: selectedTargetID,
             addedTargetIDs: addedTargetIDs,
+            targetObservationPeriods: targetObservationPeriods,
             observationDateTime: observationDateTime,
             observationTimeZoneIdentifier: observationTimeZoneIdentifier,
             telescopeCaptureStartOverrideDate: telescopeCaptureStartOverrideDate,
@@ -1974,6 +2018,7 @@ struct SingleNightObservationWorkspaceView: View {
         runtimeState.singleNightObservationDraft = nil
         selectedTargetID = nil
         addedTargetIDs.removeAll()
+        targetObservationPeriods.removeAll()
         observationDateTime = Date()
         observationTimeZoneIdentifier = TimeZone.current.identifier
         telescopeCaptureStartOverrideDate = nil
@@ -3053,6 +3098,27 @@ struct SingleNightObservationWorkspaceView: View {
         return formatter.string(from: date)
     }
 
+    private func observationPeriodSummary(for targetID: String) -> String {
+        guard let period = targetObservationPeriods[targetID],
+              period.start != nil || period.end != nil else {
+            return "Observation period: Not set"
+        }
+
+        let startText = formattedObservationPeriodTime(period.start) ?? "Start not set"
+        let endText = formattedObservationPeriodTime(period.end) ?? "End not set"
+        return "Observation period: \(startText) to \(endText)"
+    }
+
+    private func formattedObservationPeriodTime(_ date: Date?) -> String? {
+        guard let date else { return nil }
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeStyle = .short
+        formatter.dateStyle = .none
+        formatter.timeZone = observationTimeZone
+        return formatter.string(from: date)
+    }
+
     private var observationTimeZone: TimeZone {
         TimeZone(identifier: observationTimeZoneIdentifier) ?? .current
     }
@@ -3100,6 +3166,270 @@ struct SingleNightObservationWorkspaceView: View {
         return trimmed.isEmpty ? nil : trimmed
     }
 
+}
+
+private struct SingleNightObservationPeriodSheet: View {
+    let target: SingleNightTargetChoice
+    let referenceDate: Date
+    let timeZone: TimeZone
+    let defaultMeridiem: ObservationMeridiem
+    let onCancel: () -> Void
+    let onContinue: (SingleNightTargetObservationPeriod?) -> Void
+
+    @State private var startTimeText: String
+    @State private var endTimeText: String
+    @State private var startMeridiem: ObservationMeridiem
+    @State private var endMeridiem: ObservationMeridiem
+    @State private var errorMessage: String?
+    @State private var confirmNoTimesIsPresented = false
+
+    init(
+        target: SingleNightTargetChoice,
+        referenceDate: Date,
+        timeZone: TimeZone,
+        defaultMeridiem: ObservationMeridiem,
+        onCancel: @escaping () -> Void,
+        onContinue: @escaping (SingleNightTargetObservationPeriod?) -> Void
+    ) {
+        self.target = target
+        self.referenceDate = referenceDate
+        self.timeZone = timeZone
+        self.defaultMeridiem = defaultMeridiem
+        self.onCancel = onCancel
+        self.onContinue = onContinue
+
+        let initialMeridiem = Self.meridiem(for: referenceDate, timeZone: timeZone) ?? defaultMeridiem
+        _startTimeText = State(initialValue: "")
+        _endTimeText = State(initialValue: "")
+        _startMeridiem = State(initialValue: initialMeridiem)
+        _endMeridiem = State(initialValue: initialMeridiem)
+        _errorMessage = State(initialValue: nil)
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Observation Period")
+                    .font(.system(size: 22, weight: .bold, design: .rounded))
+                    .foregroundStyle(Color.yellow)
+
+                Text("\(target.identifier) • \(target.shortenedName)")
+                    .font(AppTypography.bodyStrong)
+                    .foregroundStyle(.white.opacity(0.95))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.75)
+
+                Text("Enter 24-hour time such as 21:30, or enter 1-12 and choose AM or PM.")
+                    .font(AppTypography.body)
+                    .foregroundStyle(.white.opacity(0.82))
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            VStack(alignment: .leading, spacing: 12) {
+                timeEntryRow(
+                    title: "Starting Time (hh:mm)",
+                    text: $startTimeText,
+                    meridiem: $startMeridiem
+                )
+
+                timeEntryRow(
+                    title: "Ending Time (hh:mm)",
+                    text: $endTimeText,
+                    meridiem: $endMeridiem
+                )
+            }
+
+            if let errorMessage {
+                Text(errorMessage)
+                    .font(AppTypography.body)
+                    .foregroundStyle(.red.opacity(0.92))
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            HStack {
+                Spacer(minLength: 0)
+
+                Button("Cancel") {
+                    onCancel()
+                }
+                .buttonStyle(.bordered)
+
+                Button("Continue") {
+                    continueWithObservationPeriod()
+                }
+                .buttonStyle(.borderedProminent)
+            }
+        }
+        .padding(22)
+        .frame(minWidth: 520)
+        .background(
+            RoundedRectangle(cornerRadius: 28, style: .continuous)
+                .fill(.regularMaterial)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 28, style: .continuous)
+                        .stroke(.white.opacity(0.18), lineWidth: 1)
+                )
+        )
+        .padding(24)
+        .alert(
+            "Are you sure you do not want to put in a start and end time?",
+            isPresented: $confirmNoTimesIsPresented
+        ) {
+            Button("Yes") {
+                onContinue(nil)
+            }
+
+            Button("No", role: .cancel) {}
+        } message: {
+            Text("This can be added later in Multi-Night Observations.")
+        }
+    }
+
+    private func timeEntryRow(
+        title: String,
+        text: Binding<String>,
+        meridiem: Binding<ObservationMeridiem>
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(title)
+                .font(AppTypography.bodyStrong)
+                .foregroundStyle(.white)
+
+            HStack(spacing: 10) {
+                TextField("HH:MM", text: text)
+                    .textFieldStyle(.roundedBorder)
+                    .frame(width: 120)
+                    .onChange(of: text.wrappedValue) { _, newValue in
+                        let filtered = Self.sanitizedTimeInput(newValue)
+                        if filtered != newValue {
+                            text.wrappedValue = filtered
+                        }
+                    }
+
+                Picker("", selection: meridiem) {
+                    ForEach(ObservationMeridiem.allCases) { option in
+                        Text(option.rawValue).tag(option)
+                    }
+                }
+                .labelsHidden()
+                .frame(width: 84)
+
+                Text("24-hour entries ignore AM/PM.")
+                    .font(.system(size: 12, weight: .regular, design: .rounded))
+                    .foregroundStyle(.white.opacity(0.70))
+            }
+        }
+    }
+
+    private func continueWithObservationPeriod() {
+        errorMessage = nil
+
+        let startResult = Self.parsedClockTime(startTimeText, meridiem: startMeridiem)
+        let endResult = Self.parsedClockTime(endTimeText, meridiem: endMeridiem)
+
+        if startResult.isInvalid || endResult.isInvalid {
+            errorMessage = "Use HH:MM, such as 09:20 with PM selected or 21:20."
+            return
+        }
+
+        if startResult.isEmpty && endResult.isEmpty {
+            confirmNoTimesIsPresented = true
+            return
+        }
+
+        let startDate = date(from: startResult)
+        var endDate = date(from: endResult)
+
+        if let startDate, let unwrappedEndDate = endDate, unwrappedEndDate <= startDate {
+            endDate = calendar.date(byAdding: .day, value: 1, to: unwrappedEndDate)
+        }
+
+        onContinue(SingleNightTargetObservationPeriod(start: startDate, end: endDate))
+    }
+
+    private func date(from result: ParsedClockTime) -> Date? {
+        guard case let .valid(hour24, minute) = result else { return nil }
+        var components = calendar.dateComponents([.year, .month, .day], from: referenceDate)
+        components.hour = hour24
+        components.minute = minute
+        components.second = 0
+        return calendar.date(from: components)
+    }
+
+    private var calendar: Calendar {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = timeZone
+        return calendar
+    }
+
+    private static func sanitizedTimeInput(_ value: String) -> String {
+        let allowed = value.filter { $0.isNumber || $0 == ":" }
+        guard allowed.contains(":") else {
+            let digits = String(allowed.filter(\.isNumber).prefix(4))
+            guard digits.count > 2 else { return digits }
+
+            let splitIndex = digits.count == 3
+                ? digits.index(after: digits.startIndex)
+                : digits.index(digits.startIndex, offsetBy: 2)
+            return "\(digits[..<splitIndex]):\(digits[splitIndex...])"
+        }
+
+        let parts = allowed.split(separator: ":", maxSplits: 1, omittingEmptySubsequences: false)
+        let hour = String((parts.first ?? "").filter(\.isNumber).prefix(2))
+        let minute = parts.count > 1 ? String(parts[1].filter(\.isNumber).prefix(2)) : ""
+        return "\(hour):\(minute)"
+    }
+
+    private static func parsedClockTime(_ text: String, meridiem: ObservationMeridiem) -> ParsedClockTime {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return .empty }
+
+        let parts = trimmed.split(separator: ":", maxSplits: 1, omittingEmptySubsequences: false)
+        guard parts.count == 2,
+              let hour = Int(parts[0]),
+              let minute = Int(parts[1]),
+              (0 ... 59).contains(minute) else {
+            return .invalid
+        }
+
+        if (0 ... 23).contains(hour), hour == 0 || hour > 12 {
+            return .valid(hour24: hour, minute: minute)
+        }
+
+        guard (1 ... 12).contains(hour) else {
+            return .invalid
+        }
+
+        switch meridiem {
+        case .am:
+            return .valid(hour24: hour == 12 ? 0 : hour, minute: minute)
+        case .pm:
+            return .valid(hour24: hour == 12 ? 12 : hour + 12, minute: minute)
+        }
+    }
+
+    private static func meridiem(for date: Date, timeZone: TimeZone) -> ObservationMeridiem? {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = timeZone
+        guard let hour = calendar.dateComponents([.hour], from: date).hour else { return nil }
+        return hour < 12 ? .am : .pm
+    }
+
+    private enum ParsedClockTime {
+        case empty
+        case valid(hour24: Int, minute: Int)
+        case invalid
+
+        var isEmpty: Bool {
+            if case .empty = self { return true }
+            return false
+        }
+
+        var isInvalid: Bool {
+            if case .invalid = self { return true }
+            return false
+        }
+    }
 }
 
 private struct SingleNightSaveListSheet: View {
