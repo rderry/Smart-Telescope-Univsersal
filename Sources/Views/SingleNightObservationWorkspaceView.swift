@@ -325,7 +325,7 @@ struct SingleNightObservationWorkspaceView: View {
     private let contentCardMaxWidth: CGFloat = .infinity
     private let targetFeedVisibleHeight: CGFloat = 106
     private let heroMetricWidth: CGFloat = 248
-    private let heroMetricHeight: CGFloat = 106
+    private let heroMetricHeight: CGFloat = 116
     private let transientFilterLabel = "Transient"
     private static let defaultDSOLimitingMagnitude = 8.0
     private static let minimumDSOLimitingMagnitude = -2.0
@@ -531,9 +531,9 @@ struct SingleNightObservationWorkspaceView: View {
     }
 
     private func targetFilterMaximumHeight(for availableHeight: CGFloat, compact: Bool) -> CGFloat {
-        let reservedHeight: CGFloat = compact ? 520 : 390
-        let minimumHeight: CGFloat = compact ? 320 : 330
-        let maximumHeight: CGFloat = compact ? 460 : 450
+        let reservedHeight: CGFloat = compact ? 540 : 430
+        let minimumHeight: CGFloat = compact ? 300 : 300
+        let maximumHeight: CGFloat = compact ? 420 : 390
         return min(max(availableHeight - reservedHeight, minimumHeight), maximumHeight)
     }
 
@@ -809,11 +809,12 @@ struct SingleNightObservationWorkspaceView: View {
     }
 
     private var targetFilterCardContent: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 8) {
             ViewThatFits(in: .horizontal) {
                 HStack(alignment: .top, spacing: 12) {
                     cardHeading(
-                        title: "Target Database Filters"
+                        title: "Target Database Filters",
+                        centered: true
                     )
 
                     VStack(alignment: .trailing, spacing: 8) {
@@ -841,7 +842,8 @@ struct SingleNightObservationWorkspaceView: View {
 
                 VStack(alignment: .leading, spacing: 10) {
                     cardHeading(
-                        title: "Target Database Filters"
+                        title: "Target Database Filters",
+                        centered: true
                     )
 
                     HStack {
@@ -899,7 +901,7 @@ struct SingleNightObservationWorkspaceView: View {
     }
 
     private var telescopeImagingStartTimeControl: some View {
-        VStack(alignment: .center, spacing: 10) {
+        VStack(alignment: .center, spacing: 8) {
             Text("Observation Location Restraints and Telescope Beginning of Observation Window")
                 .font(compactSelectorLabelFont)
                 .foregroundStyle(labelColor.opacity(0.92))
@@ -913,7 +915,7 @@ struct SingleNightObservationWorkspaceView: View {
                     GridItem(.adaptive(minimum: 190), spacing: 12, alignment: .center)
                 ],
                 alignment: .center,
-                spacing: 10
+                spacing: 8
             ) {
                 observationDateEntry
                 telescopeImagingStartFields
@@ -922,7 +924,7 @@ struct SingleNightObservationWorkspaceView: View {
                 targetAltitudeLimitControl
             }
         }
-        .padding(10)
+        .padding(8)
         .frame(maxWidth: .infinity, alignment: .center)
         .background(singleNightCardBackground(cornerRadius: 18, fill: .ultraThinMaterial))
     }
@@ -1107,7 +1109,8 @@ struct SingleNightObservationWorkspaceView: View {
     private var targetSelectionCard: some View {
         VStack(alignment: .leading, spacing: 8) {
             cardHeading(
-                title: "Targets"
+                title: "Targets",
+                centered: true
             )
 
             if combinedTargets.isEmpty {
@@ -1168,57 +1171,8 @@ struct SingleNightObservationWorkspaceView: View {
                 .labelsHidden()
                 .fixedSize()
 
-            HStack(alignment: .center, spacing: 12) {
-                targetFeedField(
-                    target.identifier,
-                    minimumWidth: 74,
-                    idealWidth: 88,
-                    maximumWidth: 96,
-                    font: compactStrongFont
-                )
-
-                targetFeedField(
-                    target.shortenedName,
-                    minimumWidth: 128,
-                    idealWidth: 230,
-                    maximumWidth: .infinity,
-                    font: compactStrongFont
-                )
-                    .layoutPriority(2)
-
-                targetFeedField(
-                    target.typeName,
-                    minimumWidth: 96,
-                    idealWidth: 132,
-                    maximumWidth: 148,
-                    font: compactBodyFont
-                )
-
-                targetFeedField(
-                    target.constellation,
-                    minimumWidth: 42,
-                    idealWidth: 54,
-                    maximumWidth: 62,
-                    font: compactBodyFont
-                )
-
-                if let visibilityRowText = targetVisibilitySummary(for: target) {
-                    targetFeedField(
-                        visibilityRowText,
-                        minimumWidth: 132,
-                        idealWidth: 208,
-                        maximumWidth: 240,
-                        font: compactBodyFont
-                    )
-                        .layoutPriority(1)
-                }
-
-                Spacer(minLength: 0)
-
-                targetMagnitudeBadge(for: target)
-                    .fixedSize(horizontal: true, vertical: false)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
+            targetFeedRowContent(for: target)
+                .frame(maxWidth: .infinity, alignment: .leading)
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 9)
@@ -1231,6 +1185,86 @@ struct SingleNightObservationWorkspaceView: View {
         .contentShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
         .onTapGesture {
             selectedTargetID = target.id
+        }
+    }
+
+    private func targetFeedRowContent(for target: SingleNightTargetChoice) -> some View {
+        let visibilityText = targetVisibilitySummary(for: target)
+
+        return ViewThatFits(in: .horizontal) {
+            HStack(alignment: .center, spacing: 10) {
+                targetFeedField(
+                    target.identifier,
+                    minimumWidth: 70,
+                    idealWidth: 84,
+                    maximumWidth: 92,
+                    font: compactStrongFont
+                )
+
+                targetFeedField(
+                    target.shortenedName,
+                    minimumWidth: 118,
+                    idealWidth: 220,
+                    maximumWidth: 240,
+                    font: compactStrongFont
+                )
+                    .layoutPriority(3)
+
+                targetFeedField(
+                    target.typeName,
+                    minimumWidth: 82,
+                    idealWidth: 116,
+                    maximumWidth: 130,
+                    font: compactBodyFont
+                )
+
+                targetFeedField(
+                    target.constellation,
+                    minimumWidth: 38,
+                    idealWidth: 48,
+                    maximumWidth: 54,
+                    font: compactBodyFont
+                )
+
+                if let visibilityText {
+                    targetFeedTimeField(visibilityText, maximumWidth: 250)
+                        .layoutPriority(2)
+                }
+
+                Spacer(minLength: 0)
+
+                targetMagnitudeBadge(for: target)
+                    .fixedSize(horizontal: true, vertical: false)
+            }
+
+            HStack(alignment: .center, spacing: 8) {
+                targetFeedField(
+                    target.identifier,
+                    minimumWidth: 62,
+                    idealWidth: 74,
+                    maximumWidth: 82,
+                    font: compactStrongFont
+                )
+
+                targetFeedField(
+                    target.shortenedName,
+                    minimumWidth: 96,
+                    idealWidth: 170,
+                    maximumWidth: 190,
+                    font: compactStrongFont
+                )
+                    .layoutPriority(3)
+
+                if let visibilityText {
+                    targetFeedTimeField(visibilityText, maximumWidth: 190)
+                        .layoutPriority(2)
+                }
+
+                Spacer(minLength: 0)
+
+                targetMagnitudeBadge(for: target)
+                    .fixedSize(horizontal: true, vertical: false)
+            }
         }
     }
 
@@ -1263,6 +1297,16 @@ struct SingleNightObservationWorkspaceView: View {
                 maxWidth: maximumWidth,
                 alignment: .leading
             )
+    }
+
+    private func targetFeedTimeField(_ text: String, maximumWidth: CGFloat) -> some View {
+        Text(text)
+            .font(.system(size: 14, weight: .semibold, design: .rounded))
+            .foregroundStyle(.white)
+            .lineLimit(1)
+            .minimumScaleFactor(0.70)
+            .truncationMode(.tail)
+            .frame(minWidth: 118, idealWidth: maximumWidth, maxWidth: maximumWidth, alignment: .leading)
     }
 
     private var targetIdentifierMenu: some View {
@@ -2188,12 +2232,31 @@ struct SingleNightObservationWorkspaceView: View {
         guard parts.count == 2,
               let hour = Int(parts[0]),
               let minute = Int(parts[1]),
-              (1 ... 12).contains(hour),
+              (0 ... 23).contains(hour),
               (0 ... 59).contains(minute) else {
             return nil
         }
 
         return (hour, minute)
+    }
+
+    private func parsedObservationClockTime() -> (hour24: Int, displayHour: Int, minute: Int, usesMilitaryTime: Bool)? {
+        guard let parsedTime = parsedObservationTimeEntry() else {
+            return nil
+        }
+
+        let hour = parsedTime.hour
+        let minute = parsedTime.minute
+        if (0 ... 23).contains(hour),
+           hour == 0 || hour > 12 {
+            return (hour, hour, minute, true)
+        }
+
+        guard (1 ... 12).contains(hour) else {
+            return nil
+        }
+
+        return (hour24(fromCivilianHour: hour, meridiem: observationMeridiem), hour, minute, false)
     }
 
     private func civilianHour(from24Hour hour: Int) -> Int {
@@ -2212,15 +2275,16 @@ struct SingleNightObservationWorkspaceView: View {
     }
 
     private func applyObservationTimeEntry(normalizeFields: Bool = true) {
-        guard let parsedTime = parsedObservationTimeEntry() else {
+        guard let parsedTime = parsedObservationClockTime() else {
             return
         }
 
-        let hour = parsedTime.hour
+        let hour = parsedTime.displayHour
         let minute = parsedTime.minute
-        let hour24 = hour24(fromCivilianHour: hour, meridiem: observationMeridiem)
+        let hour24 = parsedTime.hour24
+        observationMeridiem = hour24 < 12 ? .am : .pm
         if normalizeFields {
-            observationTimeText = String(format: "%02d:%02d", hour, minute)
+            observationTimeText = String(format: "%02d:%02d", parsedTime.usesMilitaryTime ? hour24 : hour, minute)
         }
 
         var calendar = Calendar(identifier: .gregorian)
@@ -2263,20 +2327,28 @@ struct SingleNightObservationWorkspaceView: View {
         }
     }
 
-    private func cardHeading(title: String, subtitle: String? = nil) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
+    private func cardHeading(title: String, subtitle: String? = nil, centered: Bool = false) -> some View {
+        let horizontalAlignment: HorizontalAlignment = centered ? .center : .leading
+        let textAlignment: TextAlignment = centered ? .center : .leading
+        let frameAlignment: Alignment = centered ? .center : .leading
+
+        return VStack(alignment: horizontalAlignment, spacing: 6) {
             Text(title)
                 .font(compactStrongFont)
                 .foregroundStyle(labelColor.opacity(0.92))
+                .multilineTextAlignment(textAlignment)
+                .frame(maxWidth: .infinity, alignment: frameAlignment)
 
             if let subtitle {
                 Text(subtitle)
                     .font(compactBodyFont)
                     .foregroundStyle(.white.opacity(0.86))
                     .fixedSize(horizontal: false, vertical: true)
+                    .multilineTextAlignment(textAlignment)
+                    .frame(maxWidth: .infinity, alignment: frameAlignment)
             }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(maxWidth: .infinity, alignment: frameAlignment)
     }
 
     @ViewBuilder
@@ -2448,6 +2520,15 @@ struct SingleNightObservationWorkspaceView: View {
                 .font(compactBodyFont)
                 .foregroundStyle(.black.opacity(0.88))
                 .fixedSize(horizontal: false, vertical: true)
+                .multilineTextAlignment(.center)
+
+            Text(
+                "Sun Below Horizon GMT \(formattedSolarEventGMT(solarEvents.start)) to \(formattedSolarEventGMT(solarEvents.end))"
+            )
+                .font(compactCaptionFont)
+                .foregroundStyle(.black.opacity(0.78))
+                .lineLimit(1)
+                .minimumScaleFactor(0.70)
                 .multilineTextAlignment(.center)
         }
     }
@@ -2943,6 +3024,15 @@ struct SingleNightObservationWorkspaceView: View {
         formatter.timeStyle = .short
         formatter.dateStyle = .none
         formatter.timeZone = observationTimeZone
+        return formatter.string(from: date)
+    }
+
+    private func formattedSolarEventGMT(_ date: Date?) -> String {
+        guard let date else { return "--" }
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "HH:mm"
+        formatter.timeZone = TimeZone(secondsFromGMT: 0)
         return formatter.string(from: date)
     }
 
