@@ -2450,9 +2450,6 @@ struct SingleNightObservationWorkspaceView: View {
                 .fixedSize(horizontal: false, vertical: true)
                 .multilineTextAlignment(.center)
         }
-        .padding(8)
-        .frame(maxWidth: .infinity, alignment: .center)
-        .background(singleNightCardBackground(cornerRadius: 18, fill: .thinMaterial))
     }
 
     private func compactInlineMetric(_ text: String) -> some View {
@@ -2506,7 +2503,9 @@ struct SingleNightObservationWorkspaceView: View {
 
     private func heroMetricFrame<Content: View>(_ content: Content) -> some View {
         content
+            .padding(8)
             .frame(width: heroMetricWidth, height: heroMetricHeight, alignment: .center)
+            .background(singleNightCardBackground(cornerRadius: 18, fill: .thinMaterial))
     }
 
     private var observationWeatherMetricBlock: some View {
@@ -2547,9 +2546,6 @@ struct SingleNightObservationWorkspaceView: View {
                     .multilineTextAlignment(.center)
             }
         }
-        .padding(8)
-        .frame(maxWidth: .infinity, alignment: .center)
-        .background(singleNightCardBackground(cornerRadius: 18, fill: .thinMaterial))
     }
 
     private func cloudSymbolName(for cloudCoverPercent: Int) -> String {
@@ -2589,9 +2585,6 @@ struct SingleNightObservationWorkspaceView: View {
                 .fixedSize(horizontal: false, vertical: true)
                 .multilineTextAlignment(.center)
         }
-        .padding(8)
-        .frame(maxWidth: .infinity, alignment: .center)
-        .background(singleNightCardBackground(cornerRadius: 18, fill: .thinMaterial))
     }
 
     private var singleNightMoonInfoBlock: some View {
