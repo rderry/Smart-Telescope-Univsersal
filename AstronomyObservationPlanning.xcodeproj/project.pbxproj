@@ -1,0 +1,451 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		0ED071EAF0E92A59E91AF1C2 /* AstronomyObservationPlanningApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = E773B18FB8AE09C092423019 /* AstronomyObservationPlanningApp.swift */; };
+		142744A62BD0734BAA619B26 /* AstronomyModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = A3AAF051A2488D930E501125 /* AstronomyModels.swift */; };
+		BCC6D4D61E51BFE518D29104 /* AppIssueFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 339B17BDC01A0611D1F2340E /* AppIssueFormatter.swift */; };
+		41D2F9EFE4B017B221F766D7 /* AppResourceBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 156876D2EA26E3D69D9200E5 /* AppResourceBundle.swift */; };
+		17376C337DBE9FEAB41D8667 /* AppRuntimeState.swift in Sources */ = {isa = PBXBuildFile; fileRef = C365C4E6BDF685BC9E50A4BC /* AppRuntimeState.swift */; };
+		855EDAF007F26142DD8CC42A /* AstronomyDatabaseSourceService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 503A13C4C3BFCC00ED479803 /* AstronomyDatabaseSourceService.swift */; };
+		9F3B04F1F405CA1E1B9F077F /* BootstrapService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6BD62680FB62535328620CC3 /* BootstrapService.swift */; };
+		8BF3DFE1491C8A3A932024EE /* CatalogService.swift in Sources */ = {isa = PBXBuildFile; fileRef = BDD4115F5293A2D30F337DE0 /* CatalogService.swift */; };
+		E2DFFE7AC2CA243D59D6B7CE /* CurrentLocationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 278CA06BA314234DDE751CB8 /* CurrentLocationService.swift */; };
+		3C96A13B9A5C802B4150BCBE /* DatabaseRefreshService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A5DF3FFB16F142F270846D7 /* DatabaseRefreshService.swift */; };
+		3CCEA1AEF3145143461597A6 /* ElevationLookupService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63AE9620DD0ABA57FF6264AF /* ElevationLookupService.swift */; };
+		E898E26F6DC9A7B6CBFB91FF /* EquipmentCatalogService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2FF8027490F090CA42BED5C /* EquipmentCatalogService.swift */; };
+		F7D8D4CDB45BB1A7293D5674 /* LandingPagePreviewExportService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9A8E657C672A385E34A064A /* LandingPagePreviewExportService.swift */; };
+		12768D3E2A3FD96D60B0BBF1 /* LocationGeocodingService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4EA94AB1E6A00D14DF4265E6 /* LocationGeocodingService.swift */; };
+		B2ABF53277669F600B3D192F /* LocationPreferenceStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A71178E2F88CB1216E1E0CF5 /* LocationPreferenceStore.swift */; };
+		3463E06305313D3E1AE9ACE7 /* MagnitudeVisibilityPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC2345C3138E8C5434E436B3 /* MagnitudeVisibilityPolicy.swift */; };
+		0D02CAFB27B35811EFD43AB6 /* ModelContainerFactory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6AEFF17E84E4BF8249EDA05E /* ModelContainerFactory.swift */; };
+		3CF4094A755860FD776CC9A9 /* MoonPhaseService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00CAD11BF39EEA14B8E985B0 /* MoonPhaseService.swift */; };
+		BB4C6808E3590E31FFFAC1E4 /* ObservationCountryService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5D242E44A5FFE4EBD478D71E /* ObservationCountryService.swift */; };
+		0A069D8F7F5B72F0D8A78CB3 /* ObservationHistoryService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 75E6C3A255895D5D77855E3B /* ObservationHistoryService.swift */; };
+		86B557F891D486339A96E94D /* ObservationPlanPrintService.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED80C34C074931E97D1F0A6A /* ObservationPlanPrintService.swift */; };
+		82A79C539B9EA193684EF4C8 /* ObservationPlanService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 292637A49F44AE2C1742F55B /* ObservationPlanService.swift */; };
+		B9E181BC4F0467BA37E5B071 /* PlanConfirmationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B743B03F8B991ED3ABE2928 /* PlanConfirmationService.swift */; };
+		3D7630E4374F7CB78A80861F /* PlanLogSyncService.swift in Sources */ = {isa = PBXBuildFile; fileRef = BFC6490AC5858472F2786870 /* PlanLogSyncService.swift */; };
+		9BA93C05D8C16502B8039164 /* PlannerService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 07780E313179DA3A3E519187 /* PlannerService.swift */; };
+		A4DFED55F48C697D7446EE9E /* RemoteServiceSessionFactory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1CB735E2703137FAF44CFB8A /* RemoteServiceSessionFactory.swift */; };
+		39588DF07B18FA59E9128861 /* SkyCoordinateService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7D6DCD9E1E9BE8BD836CE8F /* SkyCoordinateService.swift */; };
+		2AFA23952003C1832BDBB1D2 /* SolarHorizonService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F053021FB5B65FE7C38C9DF1 /* SolarHorizonService.swift */; };
+		29FBEC9D9B0AA18D18757041 /* TransientFeedService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F9091176712C6A07188BC31 /* TransientFeedService.swift */; };
+		19DF63369D9284109C9C5134 /* VesperaObservationTimingService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4739E0FE9976CD0EACEB300B /* VesperaObservationTimingService.swift */; };
+		AD8CC49A3F72DE2559D683A0 /* WeatherSourcePolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2CA542A0E90B40F214B8B593 /* WeatherSourcePolicy.swift */; };
+		B8ACEC75D751C40745475622 /* AppBuildInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3BBD2B0C8FE16C2847644C8A /* AppBuildInfo.swift */; };
+		1FFFD58D826999B1282D02D4 /* AppShellView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E5FB4E9B094C539200ACDD8 /* AppShellView.swift */; };
+		393A91BAB0FB2AE0E2B41A58 /* AppTextOverflowGuard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F19AFF64477A142F6417235 /* AppTextOverflowGuard.swift */; };
+		CC28B59500601119B7D37754 /* AppTypography.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA89C5EEAD64F0A612296D41 /* AppTypography.swift */; };
+		AFA5D9BE3C3B15A55C8AF977 /* CatalogWorkspaceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8FEB3358CC576DC3192CE6F9 /* CatalogWorkspaceView.swift */; };
+		035658B5D551CD7E495509AC /* CraterMoonPhaseView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB3ECDF1B49EF73C6272B7BD /* CraterMoonPhaseView.swift */; };
+		8408E97242178644A9CE47D4 /* CurrentPlanDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C06322116BED0B20ECC93C35 /* CurrentPlanDetailView.swift */; };
+		84E3B192CD7F919AE390F9DE /* CurrentPlanWorkspaceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1F61D0958FC6EE713D68E82 /* CurrentPlanWorkspaceView.swift */; };
+		204F2E014AB614280E358909 /* LogsWorkspaceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71CE27F068106F2555E0E432 /* LogsWorkspaceView.swift */; };
+		BF7C718503292CEEE8344532 /* MainLandingPageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17B144CFBDCB627DBF69E9A5 /* MainLandingPageView.swift */; };
+		B920B11EAF7BD3F25651C237 /* PageChromeHeader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0FDEE6A1EA20469B34B56424 /* PageChromeHeader.swift */; };
+		9543A866A8CD24A007D1C16A /* PlanObservationWorkspaceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB59160CB33525702FE10E4F /* PlanObservationWorkspaceView.swift */; };
+		72F12D4EBD5A84F1E68F08D9 /* ProfilesWorkspaceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 324A901DE68FD8A21ED18FF8 /* ProfilesWorkspaceView.swift */; };
+		DCC3F0DBBC9CFB0D4CE92FB9 /* SetupLocationsWorkspaceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5715384C2933C46A527587D6 /* SetupLocationsWorkspaceView.swift */; };
+		B789BB670CF13B5C7A6EBDB2 /* SingleNightObservationWorkspaceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63056F4358EB7B45C491D963 /* SingleNightObservationWorkspaceView.swift */; };
+		153217208A8D80D4E227BAF4 /* WindowDisplayFitModifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC2D25FE261078F77A168339 /* WindowDisplayFitModifier.swift */; };
+		89D8563A12DBBAF5EB403C22 /* WorkspacePageBackground.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B819883E08524E1B0621C82 /* WorkspacePageBackground.swift */; };
+		2C5B757F8E93DB42BC4F1F87 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = E0A265C664244F360E19829B /* Assets.xcassets */; };
+		41A8F2EB2DEA96DBCA522A34 /* andromeda-background.jpeg in Resources */ = {isa = PBXBuildFile; fileRef = C9DA702417000770E4C702D8 /* andromeda-background.jpeg */; };
+		C6617DD2CE4D78F9CA537F70 /* dso_catalog.json in Resources */ = {isa = PBXBuildFile; fileRef = BB4F312C838EA344F3C18C01 /* dso_catalog.json */; };
+		62E53AB3CB780E5CBF2C05FD /* ic405-background.jpeg in Resources */ = {isa = PBXBuildFile; fileRef = 3F4D3F2841A8969B5AA773E7 /* ic405-background.jpeg */; };
+		359C9BFC4B2F1C6B905B72A3 /* m45-background.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 884E2F00DD7D4EAB6AC1D69A /* m45-background.jpg */; };
+		84FFBE625E2F9BBD32A12468 /* transient_feed.json in Resources */ = {isa = PBXBuildFile; fileRef = 37B0D628FD1772AC4B555176 /* transient_feed.json */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		6EAE056A08BF395F7E4982C0 /* Smart Scope Observation Planner.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Smart Scope Observation Planner.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		E773B18FB8AE09C092423019 /* AstronomyObservationPlanningApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AstronomyObservationPlanningApp.swift; sourceTree = "<group>"; };
+		A3AAF051A2488D930E501125 /* AstronomyModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AstronomyModels.swift; sourceTree = "<group>"; };
+		339B17BDC01A0611D1F2340E /* AppIssueFormatter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppIssueFormatter.swift; sourceTree = "<group>"; };
+		156876D2EA26E3D69D9200E5 /* AppResourceBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppResourceBundle.swift; sourceTree = "<group>"; };
+		C365C4E6BDF685BC9E50A4BC /* AppRuntimeState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppRuntimeState.swift; sourceTree = "<group>"; };
+		503A13C4C3BFCC00ED479803 /* AstronomyDatabaseSourceService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AstronomyDatabaseSourceService.swift; sourceTree = "<group>"; };
+		6BD62680FB62535328620CC3 /* BootstrapService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BootstrapService.swift; sourceTree = "<group>"; };
+		BDD4115F5293A2D30F337DE0 /* CatalogService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogService.swift; sourceTree = "<group>"; };
+		278CA06BA314234DDE751CB8 /* CurrentLocationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CurrentLocationService.swift; sourceTree = "<group>"; };
+		2A5DF3FFB16F142F270846D7 /* DatabaseRefreshService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DatabaseRefreshService.swift; sourceTree = "<group>"; };
+		63AE9620DD0ABA57FF6264AF /* ElevationLookupService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ElevationLookupService.swift; sourceTree = "<group>"; };
+		E2FF8027490F090CA42BED5C /* EquipmentCatalogService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EquipmentCatalogService.swift; sourceTree = "<group>"; };
+		C9A8E657C672A385E34A064A /* LandingPagePreviewExportService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LandingPagePreviewExportService.swift; sourceTree = "<group>"; };
+		4EA94AB1E6A00D14DF4265E6 /* LocationGeocodingService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationGeocodingService.swift; sourceTree = "<group>"; };
+		A71178E2F88CB1216E1E0CF5 /* LocationPreferenceStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationPreferenceStore.swift; sourceTree = "<group>"; };
+		AC2345C3138E8C5434E436B3 /* MagnitudeVisibilityPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MagnitudeVisibilityPolicy.swift; sourceTree = "<group>"; };
+		6AEFF17E84E4BF8249EDA05E /* ModelContainerFactory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelContainerFactory.swift; sourceTree = "<group>"; };
+		00CAD11BF39EEA14B8E985B0 /* MoonPhaseService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoonPhaseService.swift; sourceTree = "<group>"; };
+		5D242E44A5FFE4EBD478D71E /* ObservationCountryService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ObservationCountryService.swift; sourceTree = "<group>"; };
+		75E6C3A255895D5D77855E3B /* ObservationHistoryService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ObservationHistoryService.swift; sourceTree = "<group>"; };
+		ED80C34C074931E97D1F0A6A /* ObservationPlanPrintService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ObservationPlanPrintService.swift; sourceTree = "<group>"; };
+		292637A49F44AE2C1742F55B /* ObservationPlanService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ObservationPlanService.swift; sourceTree = "<group>"; };
+		2B743B03F8B991ED3ABE2928 /* PlanConfirmationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanConfirmationService.swift; sourceTree = "<group>"; };
+		BFC6490AC5858472F2786870 /* PlanLogSyncService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanLogSyncService.swift; sourceTree = "<group>"; };
+		07780E313179DA3A3E519187 /* PlannerService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlannerService.swift; sourceTree = "<group>"; };
+		1CB735E2703137FAF44CFB8A /* RemoteServiceSessionFactory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteServiceSessionFactory.swift; sourceTree = "<group>"; };
+		E7D6DCD9E1E9BE8BD836CE8F /* SkyCoordinateService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SkyCoordinateService.swift; sourceTree = "<group>"; };
+		F053021FB5B65FE7C38C9DF1 /* SolarHorizonService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SolarHorizonService.swift; sourceTree = "<group>"; };
+		7F9091176712C6A07188BC31 /* TransientFeedService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransientFeedService.swift; sourceTree = "<group>"; };
+		4739E0FE9976CD0EACEB300B /* VesperaObservationTimingService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VesperaObservationTimingService.swift; sourceTree = "<group>"; };
+		2CA542A0E90B40F214B8B593 /* WeatherSourcePolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherSourcePolicy.swift; sourceTree = "<group>"; };
+		3BBD2B0C8FE16C2847644C8A /* AppBuildInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppBuildInfo.swift; sourceTree = "<group>"; };
+		3E5FB4E9B094C539200ACDD8 /* AppShellView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppShellView.swift; sourceTree = "<group>"; };
+		4F19AFF64477A142F6417235 /* AppTextOverflowGuard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppTextOverflowGuard.swift; sourceTree = "<group>"; };
+		AA89C5EEAD64F0A612296D41 /* AppTypography.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppTypography.swift; sourceTree = "<group>"; };
+		8FEB3358CC576DC3192CE6F9 /* CatalogWorkspaceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogWorkspaceView.swift; sourceTree = "<group>"; };
+		EB3ECDF1B49EF73C6272B7BD /* CraterMoonPhaseView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CraterMoonPhaseView.swift; sourceTree = "<group>"; };
+		C06322116BED0B20ECC93C35 /* CurrentPlanDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CurrentPlanDetailView.swift; sourceTree = "<group>"; };
+		D1F61D0958FC6EE713D68E82 /* CurrentPlanWorkspaceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CurrentPlanWorkspaceView.swift; sourceTree = "<group>"; };
+		71CE27F068106F2555E0E432 /* LogsWorkspaceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogsWorkspaceView.swift; sourceTree = "<group>"; };
+		17B144CFBDCB627DBF69E9A5 /* MainLandingPageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainLandingPageView.swift; sourceTree = "<group>"; };
+		0FDEE6A1EA20469B34B56424 /* PageChromeHeader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PageChromeHeader.swift; sourceTree = "<group>"; };
+		AB59160CB33525702FE10E4F /* PlanObservationWorkspaceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanObservationWorkspaceView.swift; sourceTree = "<group>"; };
+		324A901DE68FD8A21ED18FF8 /* ProfilesWorkspaceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfilesWorkspaceView.swift; sourceTree = "<group>"; };
+		5715384C2933C46A527587D6 /* SetupLocationsWorkspaceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SetupLocationsWorkspaceView.swift; sourceTree = "<group>"; };
+		63056F4358EB7B45C491D963 /* SingleNightObservationWorkspaceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SingleNightObservationWorkspaceView.swift; sourceTree = "<group>"; };
+		FC2D25FE261078F77A168339 /* WindowDisplayFitModifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowDisplayFitModifier.swift; sourceTree = "<group>"; };
+		4B819883E08524E1B0621C82 /* WorkspacePageBackground.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspacePageBackground.swift; sourceTree = "<group>"; };
+		E0A265C664244F360E19829B /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		C9DA702417000770E4C702D8 /* andromeda-background.jpeg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = andromeda-background.jpeg; sourceTree = "<group>"; };
+		BB4F312C838EA344F3C18C01 /* dso_catalog.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = dso_catalog.json; sourceTree = "<group>"; };
+		3F4D3F2841A8969B5AA773E7 /* ic405-background.jpeg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = ic405-background.jpeg; sourceTree = "<group>"; };
+		884E2F00DD7D4EAB6AC1D69A /* m45-background.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = m45-background.jpg; sourceTree = "<group>"; };
+		37B0D628FD1772AC4B555176 /* transient_feed.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = transient_feed.json; sourceTree = "<group>"; };
+		9B061D64716B700BB6234243 /* AstronomyObservationPlanning.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = AstronomyObservationPlanning.entitlements; sourceTree = SOURCE_ROOT; };
+		9F61F27D337C9EDE9DAD5FA1 /* AppSandboxChecklist.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = AppSandboxChecklist.md; sourceTree = SOURCE_ROOT; };
+		FE39F65E2E0D04E61C150B84 /* Package.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Package.swift; sourceTree = SOURCE_ROOT; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		424153ED3CD079DB4DB459AF /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		518DA81DB9B99529C0C0AEBE = {isa = PBXGroup; children = (
+			1507F349832A04790D3C1273 /* Sources */, 
+			2ADD8FE78E6D6FA4D01D77F0 /* Support */, 
+			547D009064F7C3F13BEF3460 /* Products */, 
+		); sourceTree = "<group>"; };
+		547D009064F7C3F13BEF3460 /* Products */ = {isa = PBXGroup; children = (
+			6EAE056A08BF395F7E4982C0 /* Smart Scope Observation Planner.app */, 
+		); name = Products; sourceTree = "<group>"; };
+		1507F349832A04790D3C1273 /* Sources */ = {isa = PBXGroup; children = (
+			E773B18FB8AE09C092423019 /* AstronomyObservationPlanningApp.swift */, 
+			209FAC3A625D83C69ADEB15A /* Models */, 
+			860B2FD20646F4C86EC8B0EB /* Services */, 
+			29AC9F3F890EAF73DB9E7C81 /* Views */, 
+			AAE953452CCD6DDD91445CEA /* Resources */, 
+		); path = Sources; sourceTree = SOURCE_ROOT; };
+		209FAC3A625D83C69ADEB15A /* Models */ = {isa = PBXGroup; children = (
+			A3AAF051A2488D930E501125 /* AstronomyModels.swift */, 
+		); path = Models; sourceTree = "<group>"; };
+		860B2FD20646F4C86EC8B0EB /* Services */ = {isa = PBXGroup; children = (
+			339B17BDC01A0611D1F2340E /* AppIssueFormatter.swift */, 
+			156876D2EA26E3D69D9200E5 /* AppResourceBundle.swift */, 
+			C365C4E6BDF685BC9E50A4BC /* AppRuntimeState.swift */, 
+			503A13C4C3BFCC00ED479803 /* AstronomyDatabaseSourceService.swift */, 
+			6BD62680FB62535328620CC3 /* BootstrapService.swift */, 
+			BDD4115F5293A2D30F337DE0 /* CatalogService.swift */, 
+			278CA06BA314234DDE751CB8 /* CurrentLocationService.swift */, 
+			2A5DF3FFB16F142F270846D7 /* DatabaseRefreshService.swift */, 
+			63AE9620DD0ABA57FF6264AF /* ElevationLookupService.swift */, 
+			E2FF8027490F090CA42BED5C /* EquipmentCatalogService.swift */, 
+			C9A8E657C672A385E34A064A /* LandingPagePreviewExportService.swift */, 
+			4EA94AB1E6A00D14DF4265E6 /* LocationGeocodingService.swift */, 
+			A71178E2F88CB1216E1E0CF5 /* LocationPreferenceStore.swift */, 
+			AC2345C3138E8C5434E436B3 /* MagnitudeVisibilityPolicy.swift */, 
+			6AEFF17E84E4BF8249EDA05E /* ModelContainerFactory.swift */, 
+			00CAD11BF39EEA14B8E985B0 /* MoonPhaseService.swift */, 
+			5D242E44A5FFE4EBD478D71E /* ObservationCountryService.swift */, 
+			75E6C3A255895D5D77855E3B /* ObservationHistoryService.swift */, 
+			ED80C34C074931E97D1F0A6A /* ObservationPlanPrintService.swift */, 
+			292637A49F44AE2C1742F55B /* ObservationPlanService.swift */, 
+			2B743B03F8B991ED3ABE2928 /* PlanConfirmationService.swift */, 
+			BFC6490AC5858472F2786870 /* PlanLogSyncService.swift */, 
+			07780E313179DA3A3E519187 /* PlannerService.swift */, 
+			1CB735E2703137FAF44CFB8A /* RemoteServiceSessionFactory.swift */, 
+			E7D6DCD9E1E9BE8BD836CE8F /* SkyCoordinateService.swift */, 
+			F053021FB5B65FE7C38C9DF1 /* SolarHorizonService.swift */, 
+			7F9091176712C6A07188BC31 /* TransientFeedService.swift */, 
+			4739E0FE9976CD0EACEB300B /* VesperaObservationTimingService.swift */, 
+			2CA542A0E90B40F214B8B593 /* WeatherSourcePolicy.swift */, 
+		); path = Services; sourceTree = "<group>"; };
+		29AC9F3F890EAF73DB9E7C81 /* Views */ = {isa = PBXGroup; children = (
+			3BBD2B0C8FE16C2847644C8A /* AppBuildInfo.swift */, 
+			3E5FB4E9B094C539200ACDD8 /* AppShellView.swift */, 
+			4F19AFF64477A142F6417235 /* AppTextOverflowGuard.swift */, 
+			AA89C5EEAD64F0A612296D41 /* AppTypography.swift */, 
+			8FEB3358CC576DC3192CE6F9 /* CatalogWorkspaceView.swift */, 
+			EB3ECDF1B49EF73C6272B7BD /* CraterMoonPhaseView.swift */, 
+			C06322116BED0B20ECC93C35 /* CurrentPlanDetailView.swift */, 
+			D1F61D0958FC6EE713D68E82 /* CurrentPlanWorkspaceView.swift */, 
+			71CE27F068106F2555E0E432 /* LogsWorkspaceView.swift */, 
+			17B144CFBDCB627DBF69E9A5 /* MainLandingPageView.swift */, 
+			0FDEE6A1EA20469B34B56424 /* PageChromeHeader.swift */, 
+			AB59160CB33525702FE10E4F /* PlanObservationWorkspaceView.swift */, 
+			324A901DE68FD8A21ED18FF8 /* ProfilesWorkspaceView.swift */, 
+			5715384C2933C46A527587D6 /* SetupLocationsWorkspaceView.swift */, 
+			63056F4358EB7B45C491D963 /* SingleNightObservationWorkspaceView.swift */, 
+			FC2D25FE261078F77A168339 /* WindowDisplayFitModifier.swift */, 
+			4B819883E08524E1B0621C82 /* WorkspacePageBackground.swift */, 
+		); path = Views; sourceTree = "<group>"; };
+		AAE953452CCD6DDD91445CEA /* Resources */ = {isa = PBXGroup; children = (
+			E0A265C664244F360E19829B /* Assets.xcassets */, 
+			C9DA702417000770E4C702D8 /* andromeda-background.jpeg */, 
+			BB4F312C838EA344F3C18C01 /* dso_catalog.json */, 
+			3F4D3F2841A8969B5AA773E7 /* ic405-background.jpeg */, 
+			884E2F00DD7D4EAB6AC1D69A /* m45-background.jpg */, 
+			37B0D628FD1772AC4B555176 /* transient_feed.json */, 
+		); path = Resources; sourceTree = "<group>"; };
+		2ADD8FE78E6D6FA4D01D77F0 /* Support */ = {isa = PBXGroup; children = (
+			9B061D64716B700BB6234243 /* AstronomyObservationPlanning.entitlements */, 
+			9F61F27D337C9EDE9DAD5FA1 /* AppSandboxChecklist.md */, 
+			FE39F65E2E0D04E61C150B84 /* Package.swift */, 
+		); name = Support; sourceTree = "<group>"; };
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		E3435DDA2687639586BF0B70 /* AstronomyObservationPlanning */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 354589B28580510B6EC24620 /* Build configuration list for PBXNativeTarget "AstronomyObservationPlanning" */;
+			buildPhases = (
+				7A70D71C385290AF96BF1031 /* Sources */,
+				424153ED3CD079DB4DB459AF /* Frameworks */,
+				285BB1C1430063331E9F5DD0 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = AstronomyObservationPlanning;
+			productName = "Smart Scope Observation Planner";
+			productReference = 6EAE056A08BF395F7E4982C0 /* Smart Scope Observation Planner.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		AFC74C69B8FAF538E614821C /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1630;
+				LastUpgradeCheck = 1630;
+				TargetAttributes = {
+					E3435DDA2687639586BF0B70 = {
+						CreatedOnToolsVersion = 16.3;
+						ProvisioningStyle = Automatic;
+					};
+				};
+			};
+			buildConfigurationList = 1F4E3D13C2320EDA50221924 /* Build configuration list for PBXProject "AstronomyObservationPlanning" */;
+			compatibilityVersion = "Xcode 16.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 518DA81DB9B99529C0C0AEBE;
+			productRefGroup = 547D009064F7C3F13BEF3460 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				E3435DDA2687639586BF0B70 /* AstronomyObservationPlanning */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		285BB1C1430063331E9F5DD0 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			2C5B757F8E93DB42BC4F1F87 /* Assets.xcassets in Resources */, 
+			41A8F2EB2DEA96DBCA522A34 /* andromeda-background.jpeg in Resources */, 
+			C6617DD2CE4D78F9CA537F70 /* dso_catalog.json in Resources */, 
+			62E53AB3CB780E5CBF2C05FD /* ic405-background.jpeg in Resources */, 
+			359C9BFC4B2F1C6B905B72A3 /* m45-background.jpg in Resources */, 
+			84FFBE625E2F9BBD32A12468 /* transient_feed.json in Resources */, 
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		7A70D71C385290AF96BF1031 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			0ED071EAF0E92A59E91AF1C2 /* AstronomyObservationPlanningApp.swift in Sources */, 
+			142744A62BD0734BAA619B26 /* AstronomyModels.swift in Sources */, 
+			BCC6D4D61E51BFE518D29104 /* AppIssueFormatter.swift in Sources */, 
+			41D2F9EFE4B017B221F766D7 /* AppResourceBundle.swift in Sources */, 
+			17376C337DBE9FEAB41D8667 /* AppRuntimeState.swift in Sources */, 
+			855EDAF007F26142DD8CC42A /* AstronomyDatabaseSourceService.swift in Sources */, 
+			9F3B04F1F405CA1E1B9F077F /* BootstrapService.swift in Sources */, 
+			8BF3DFE1491C8A3A932024EE /* CatalogService.swift in Sources */, 
+			E2DFFE7AC2CA243D59D6B7CE /* CurrentLocationService.swift in Sources */, 
+			3C96A13B9A5C802B4150BCBE /* DatabaseRefreshService.swift in Sources */, 
+			3CCEA1AEF3145143461597A6 /* ElevationLookupService.swift in Sources */, 
+			E898E26F6DC9A7B6CBFB91FF /* EquipmentCatalogService.swift in Sources */, 
+			F7D8D4CDB45BB1A7293D5674 /* LandingPagePreviewExportService.swift in Sources */, 
+			12768D3E2A3FD96D60B0BBF1 /* LocationGeocodingService.swift in Sources */, 
+			B2ABF53277669F600B3D192F /* LocationPreferenceStore.swift in Sources */, 
+			3463E06305313D3E1AE9ACE7 /* MagnitudeVisibilityPolicy.swift in Sources */, 
+			0D02CAFB27B35811EFD43AB6 /* ModelContainerFactory.swift in Sources */, 
+			3CF4094A755860FD776CC9A9 /* MoonPhaseService.swift in Sources */, 
+			BB4C6808E3590E31FFFAC1E4 /* ObservationCountryService.swift in Sources */, 
+			0A069D8F7F5B72F0D8A78CB3 /* ObservationHistoryService.swift in Sources */, 
+			86B557F891D486339A96E94D /* ObservationPlanPrintService.swift in Sources */, 
+			82A79C539B9EA193684EF4C8 /* ObservationPlanService.swift in Sources */, 
+			B9E181BC4F0467BA37E5B071 /* PlanConfirmationService.swift in Sources */, 
+			3D7630E4374F7CB78A80861F /* PlanLogSyncService.swift in Sources */, 
+			9BA93C05D8C16502B8039164 /* PlannerService.swift in Sources */, 
+			A4DFED55F48C697D7446EE9E /* RemoteServiceSessionFactory.swift in Sources */, 
+			39588DF07B18FA59E9128861 /* SkyCoordinateService.swift in Sources */, 
+			2AFA23952003C1832BDBB1D2 /* SolarHorizonService.swift in Sources */, 
+			29FBEC9D9B0AA18D18757041 /* TransientFeedService.swift in Sources */, 
+			19DF63369D9284109C9C5134 /* VesperaObservationTimingService.swift in Sources */, 
+			AD8CC49A3F72DE2559D683A0 /* WeatherSourcePolicy.swift in Sources */, 
+			B8ACEC75D751C40745475622 /* AppBuildInfo.swift in Sources */, 
+			1FFFD58D826999B1282D02D4 /* AppShellView.swift in Sources */, 
+			393A91BAB0FB2AE0E2B41A58 /* AppTextOverflowGuard.swift in Sources */, 
+			CC28B59500601119B7D37754 /* AppTypography.swift in Sources */, 
+			AFA5D9BE3C3B15A55C8AF977 /* CatalogWorkspaceView.swift in Sources */, 
+			035658B5D551CD7E495509AC /* CraterMoonPhaseView.swift in Sources */, 
+			8408E97242178644A9CE47D4 /* CurrentPlanDetailView.swift in Sources */, 
+			84E3B192CD7F919AE390F9DE /* CurrentPlanWorkspaceView.swift in Sources */, 
+			204F2E014AB614280E358909 /* LogsWorkspaceView.swift in Sources */, 
+			BF7C718503292CEEE8344532 /* MainLandingPageView.swift in Sources */, 
+			B920B11EAF7BD3F25651C237 /* PageChromeHeader.swift in Sources */, 
+			9543A866A8CD24A007D1C16A /* PlanObservationWorkspaceView.swift in Sources */, 
+			72F12D4EBD5A84F1E68F08D9 /* ProfilesWorkspaceView.swift in Sources */, 
+			DCC3F0DBBC9CFB0D4CE92FB9 /* SetupLocationsWorkspaceView.swift in Sources */, 
+			B789BB670CF13B5C7A6EBDB2 /* SingleNightObservationWorkspaceView.swift in Sources */, 
+			153217208A8D80D4E227BAF4 /* WindowDisplayFitModifier.swift in Sources */, 
+			89D8563A12DBBAF5EB403C22 /* WorkspacePageBackground.swift in Sources */, 
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		92E165A9035A603BE73D2E62 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ENABLE_MODULES = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				SDKROOT = macosx;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Debug;
+		};
+		E1D3BBA94590957B0374D6E9 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ENABLE_MODULES = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				SDKROOT = macosx;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Release;
+		};
+		F22D2FFCC45240A8FF5EBE4A /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ARCHS = "$(ARCHS_STANDARD)";
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = AstronomyObservationPlanning.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "Smart Scope Observation Planner";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.education";
+				INFOPLIST_KEY_NSLocationUsageDescription = "Smart Scope uses your current location to create observing sites with GPS coordinates and altitude.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Smart Scope uses your current location to create observing sites with GPS coordinates and altitude.";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright BigSkyAstro Richard Derry";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				MARKETING_VERSION = 1.0;
+				ONLY_ACTIVE_ARCH = NO;
+				PRODUCT_BUNDLE_IDENTIFIER = com.bigskyastro.SmartScopeObservationPlanner;
+				PRODUCT_NAME = "Smart Scope Observation Planner";
+				SUPPORTED_PLATFORMS = macosx;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Debug;
+		};
+		FE4F802C632EAD717BA35062 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ARCHS = "$(ARCHS_STANDARD)";
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = AstronomyObservationPlanning.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "Smart Scope Observation Planner";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.education";
+				INFOPLIST_KEY_NSLocationUsageDescription = "Smart Scope uses your current location to create observing sites with GPS coordinates and altitude.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Smart Scope uses your current location to create observing sites with GPS coordinates and altitude.";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright BigSkyAstro Richard Derry";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				MARKETING_VERSION = 1.0;
+				ONLY_ACTIVE_ARCH = NO;
+				PRODUCT_BUNDLE_IDENTIFIER = com.bigskyastro.SmartScopeObservationPlanner;
+				PRODUCT_NAME = "Smart Scope Observation Planner";
+				SUPPORTED_PLATFORMS = macosx;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		1F4E3D13C2320EDA50221924 /* Build configuration list for PBXProject "AstronomyObservationPlanning" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				92E165A9035A603BE73D2E62 /* Debug */,
+				E1D3BBA94590957B0374D6E9 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		354589B28580510B6EC24620 /* Build configuration list for PBXNativeTarget "AstronomyObservationPlanning" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F22D2FFCC45240A8FF5EBE4A /* Debug */,
+				FE4F802C632EAD717BA35062 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = AFC74C69B8FAF538E614821C /* Project object */;
+}

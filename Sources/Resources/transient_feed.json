@@ -1,0 +1,54 @@
+[
+  {
+    "feedID": "COMET-C2023A3",
+    "displayName": "C/2023 A3 (Tsuchinshan-ATLAS)",
+    "transientType": "comet",
+    "constellation": "Virgo",
+    "rightAscensionHours": 13.25,
+    "declinationDegrees": -3.4,
+    "magnitude": 6.5,
+    "discoveryDate": "2023-01-09T00:00:00Z",
+    "lastUpdated": "2026-04-04T00:00:00Z",
+    "sourceName": "Bundled transient feed",
+    "notes": "Example comet feed item. Replace with live MPC/JPL ingestion later."
+  },
+  {
+    "feedID": "SN-2026demo",
+    "displayName": "SN 2026demo",
+    "transientType": "supernova",
+    "constellation": "Leo",
+    "rightAscensionHours": 10.74,
+    "declinationDegrees": 11.8,
+    "magnitude": 13.2,
+    "discoveryDate": "2026-03-28T00:00:00Z",
+    "lastUpdated": "2026-04-04T00:00:00Z",
+    "sourceName": "Bundled transient feed",
+    "notes": "Example supernova feed item. Replace with a live TNS/IAU-style ingestion source later."
+  },
+  {
+    "feedID": "AST-4VESTA",
+    "displayName": "(4) Vesta",
+    "transientType": "asteroid",
+    "constellation": "Virgo",
+    "rightAscensionHours": 13.88,
+    "declinationDegrees": -6.1,
+    "magnitude": 7.2,
+    "discoveryDate": "1807-03-29T00:00:00Z",
+    "lastUpdated": "2026-04-09T00:00:00Z",
+    "sourceName": "Bundled asteroid feed",
+    "notes": "Example bright asteroid seed for telescope planning. Replace with live minor-planet ingestion later."
+  },
+  {
+    "feedID": "AST-1CERES",
+    "displayName": "(1) Ceres",
+    "transientType": "asteroid",
+    "constellation": "Sagittarius",
+    "rightAscensionHours": 18.55,
+    "declinationDegrees": -24.3,
+    "magnitude": 8.1,
+    "discoveryDate": "1801-01-01T00:00:00Z",
+    "lastUpdated": "2026-04-09T00:00:00Z",
+    "sourceName": "Bundled asteroid feed",
+    "notes": "Example bright asteroid seed for telescope planning. Replace with live minor-planet ingestion later."
+  }
+]
