@@ -29,6 +29,7 @@
 		0A069D8F7F5B72F0D8A78CB3 /* ObservationHistoryService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 75E6C3A255895D5D77855E3B /* ObservationHistoryService.swift */; };
 		86B557F891D486339A96E94D /* ObservationPlanPrintService.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED80C34C074931E97D1F0A6A /* ObservationPlanPrintService.swift */; };
 		82A79C539B9EA193684EF4C8 /* ObservationPlanService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 292637A49F44AE2C1742F55B /* ObservationPlanService.swift */; };
+		06A037B82638D1AB2DF55376 /* ObservationWeatherService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0260CB890D9A8465F0C88C21 /* ObservationWeatherService.swift */; };
 		B9E181BC4F0467BA37E5B071 /* PlanConfirmationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B743B03F8B991ED3ABE2928 /* PlanConfirmationService.swift */; };
 		3D7630E4374F7CB78A80861F /* PlanLogSyncService.swift in Sources */ = {isa = PBXBuildFile; fileRef = BFC6490AC5858472F2786870 /* PlanLogSyncService.swift */; };
 		9BA93C05D8C16502B8039164 /* PlannerService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 07780E313179DA3A3E519187 /* PlannerService.swift */; };
@@ -87,6 +88,7 @@
 		75E6C3A255895D5D77855E3B /* ObservationHistoryService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ObservationHistoryService.swift; sourceTree = "<group>"; };
 		ED80C34C074931E97D1F0A6A /* ObservationPlanPrintService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ObservationPlanPrintService.swift; sourceTree = "<group>"; };
 		292637A49F44AE2C1742F55B /* ObservationPlanService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ObservationPlanService.swift; sourceTree = "<group>"; };
+		0260CB890D9A8465F0C88C21 /* ObservationWeatherService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ObservationWeatherService.swift; sourceTree = "<group>"; };
 		2B743B03F8B991ED3ABE2928 /* PlanConfirmationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanConfirmationService.swift; sourceTree = "<group>"; };
 		BFC6490AC5858472F2786870 /* PlanLogSyncService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanLogSyncService.swift; sourceTree = "<group>"; };
 		07780E313179DA3A3E519187 /* PlannerService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlannerService.swift; sourceTree = "<group>"; };
@@ -174,6 +176,7 @@
 			75E6C3A255895D5D77855E3B /* ObservationHistoryService.swift */, 
 			ED80C34C074931E97D1F0A6A /* ObservationPlanPrintService.swift */, 
 			292637A49F44AE2C1742F55B /* ObservationPlanService.swift */, 
+			0260CB890D9A8465F0C88C21 /* ObservationWeatherService.swift */,
 			2B743B03F8B991ED3ABE2928 /* PlanConfirmationService.swift */, 
 			BFC6490AC5858472F2786870 /* PlanLogSyncService.swift */, 
 			07780E313179DA3A3E519187 /* PlannerService.swift */, 
@@ -313,6 +316,7 @@
 			0A069D8F7F5B72F0D8A78CB3 /* ObservationHistoryService.swift in Sources */, 
 			86B557F891D486339A96E94D /* ObservationPlanPrintService.swift in Sources */, 
 			82A79C539B9EA193684EF4C8 /* ObservationPlanService.swift in Sources */, 
+			06A037B82638D1AB2DF55376 /* ObservationWeatherService.swift in Sources */,
 			B9E181BC4F0467BA37E5B071 /* PlanConfirmationService.swift in Sources */, 
 			3D7630E4374F7CB78A80861F /* PlanLogSyncService.swift in Sources */, 
 			9BA93C05D8C16502B8039164 /* PlannerService.swift in Sources */, 

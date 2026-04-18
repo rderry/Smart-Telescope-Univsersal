@@ -27,7 +27,7 @@ enum SidebarSection: String, CaseIterable, Identifiable {
         switch self {
         case .home: "Home"
         case .setupLocations: "Setup Locations"
-        case .databaseMaintenance: "Equipment Data Bases"
+        case .databaseMaintenance: "Equipment Databases"
         case .planObservation: "Single Night Observation"
         case .multiNightObservation: "Multi-night Observation"
         case .currentPlan: "Current Plan"
@@ -301,6 +301,7 @@ struct AppShellView: View {
             Capsule()
                 .fill(isSelected ? palette.selectedButtonFill : palette.buttonFill)
         )
+        .contentShape(Capsule())
         .overlay(
             Capsule()
                 .stroke(
@@ -456,7 +457,7 @@ struct DatabaseMaintenanceWorkspaceView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 VStack(alignment: .center, spacing: 10) {
-                    Text("Equipment Data Bases")
+                    Text("Equipment Databases")
                         .font(.system(size: 28, weight: .bold, design: .rounded))
                         .foregroundStyle(Color.yellow)
                         .frame(maxWidth: .infinity, alignment: .center)

@@ -95,7 +95,38 @@ enum SolarHorizonService {
             return nil
         }
 
-        return midnightUTC.addingTimeInterval(universalTime * 3600)
+        return adjustedEventDate(
+            midnightUTC.addingTimeInterval(universalTime * 3600),
+            toMatchLocalDayFor: date,
+            calendar: localCalendar
+        )
+    }
+
+    private static func adjustedEventDate(
+        _ eventDate: Date,
+        toMatchLocalDayFor date: Date,
+        calendar: Calendar
+    ) -> Date {
+        guard let targetDayStart = calendar.dateInterval(of: .day, for: date)?.start else {
+            return eventDate
+        }
+
+        var adjustedDate = eventDate
+        for _ in 0 ..< 2 {
+            guard let eventDayStart = calendar.dateInterval(of: .day, for: adjustedDate)?.start else {
+                return adjustedDate
+            }
+
+            if eventDayStart < targetDayStart {
+                adjustedDate = adjustedDate.addingTimeInterval(24 * 60 * 60)
+            } else if eventDayStart > targetDayStart {
+                adjustedDate = adjustedDate.addingTimeInterval(-24 * 60 * 60)
+            } else {
+                return adjustedDate
+            }
+        }
+
+        return adjustedDate
     }
 
     private static func normalizedDegrees(_ value: Double) -> Double {

@@ -44,6 +44,7 @@ struct SingleNightObservationDraft {
     var targetAltitudeLowLimitText: String
     var targetAltitudeHighLimitText: String
     var selectedTargetTypeNames: Set<String>
+    var targetSortModeRawValue: String
     var hasInitializedTargetTypeSelection: Bool
     var didManuallyAdjustTargetTypes: Bool
 }

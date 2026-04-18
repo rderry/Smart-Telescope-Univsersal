@@ -1,11 +1,19 @@
 #!/usr/bin/env ruby
 
+require "cgi"
 require "digest"
 require "fileutils"
 
 PROJECT_NAME = "AstronomyObservationPlanning"
 APP_PRODUCT_NAME = "Smart Scope Observation Planner"
 APP_BUNDLE_ID = "com.bigskyastro.SmartScopeObservationPlanner"
+APP_CATEGORY = "public.app-category.education"
+APP_MARKETING_VERSION = "1.0"
+APP_BUILD_VERSION = "1"
+COPYRIGHT_TEXT = "Copyright BigSkyAstro Richard Derry"
+MACOS_DEPLOYMENT_TARGET = "15.0"
+SWIFT_LANGUAGE_VERSION = "6.0"
+LOCATION_USAGE_DESCRIPTION = "Smart Scope uses your current location to create observing sites with GPS coordinates and altitude."
 ROOT = File.expand_path("..", __dir__)
 PROJECT_DIR = File.join(ROOT, "#{PROJECT_NAME}.xcodeproj")
 PBXPROJ_PATH = File.join(PROJECT_DIR, "project.pbxproj")
@@ -35,8 +43,21 @@ def file_type(path)
   end
 end
 
-def quote(value)
-  value.include?(" ") ? "\"#{value}\"" : value
+def escaped_pbx_string(value)
+  value.to_s.gsub(/[\\"]/) { |character| "\\#{character}" }
+end
+
+def pbx_string(value)
+  escaped_value = escaped_pbx_string(value)
+  escaped_value.match?(/\A[A-Za-z0-9_.$\/+-]+\z/) ? escaped_value : "\"#{escaped_value}\""
+end
+
+def pbx_quoted_string(value)
+  "\"#{escaped_pbx_string(value)}\""
+end
+
+def xml_attribute(value)
+  CGI.escapeHTML(value.to_s)
 end
 
 app_files = ["Sources/AstronomyObservationPlanningApp.swift"]
@@ -98,7 +119,7 @@ resource_files.each do |path|
 end
 
 pbx_file_reference_lines = []
-pbx_file_reference_lines << "\t\t#{product_ref} /* #{APP_PRODUCT_NAME}.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = #{quote("#{APP_PRODUCT_NAME}.app")}; sourceTree = BUILT_PRODUCTS_DIR; };"
+pbx_file_reference_lines << "\t\t#{product_ref} /* #{APP_PRODUCT_NAME}.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = #{pbx_string("#{APP_PRODUCT_NAME}.app")}; sourceTree = BUILT_PRODUCTS_DIR; };"
 
 (app_files + model_files + service_files + view_files + resource_files + support_files).each do |path|
   basename = File.basename(path)
@@ -122,7 +143,7 @@ pbx_file_reference_lines << "\t\t#{product_ref} /* #{APP_PRODUCT_NAME}.app */ = 
     source_tree = "\"<group>\""
   end
 
-  pbx_file_reference_lines << "\t\t#{file_ref_ids[path]} /* #{basename} */ = {isa = PBXFileReference; lastKnownFileType = #{file_type(path)}; path = #{quote(group_relative)}; sourceTree = #{source_tree}; };"
+  pbx_file_reference_lines << "\t\t#{file_ref_ids[path]} /* #{basename} */ = {isa = PBXFileReference; lastKnownFileType = #{file_type(path)}; path = #{pbx_string(group_relative)}; sourceTree = #{source_tree}; };"
 end
 
 sources_children = [
@@ -230,7 +251,7 @@ pbxproj = <<~PBXPROJ
 \t\t\tdependencies = (
 \t\t\t);
 \t\t\tname = #{PROJECT_NAME};
-\t\t\tproductName = #{quote(APP_PRODUCT_NAME)};
+\t\t\tproductName = #{pbx_string(APP_PRODUCT_NAME)};
 \t\t\tproductReference = #{product_ref} /* #{APP_PRODUCT_NAME}.app */;
 \t\t\tproductType = "com.apple.product-type.application";
 \t\t};
@@ -297,7 +318,7 @@ pbxproj = <<~PBXPROJ
 \t\t\t\tCLANG_ENABLE_MODULES = YES;
 \t\t\t\tENABLE_USER_SCRIPT_SANDBOXING = YES;
 \t\t\t\tSDKROOT = macosx;
-\t\t\t\tSWIFT_VERSION = 6.0;
+\t\t\t\tSWIFT_VERSION = #{SWIFT_LANGUAGE_VERSION};
 \t\t\t};
 \t\t\tname = Debug;
 \t\t};
@@ -307,7 +328,7 @@ pbxproj = <<~PBXPROJ
 \t\t\t\tCLANG_ENABLE_MODULES = YES;
 \t\t\t\tENABLE_USER_SCRIPT_SANDBOXING = YES;
 \t\t\t\tSDKROOT = macosx;
-\t\t\t\tSWIFT_VERSION = 6.0;
+\t\t\t\tSWIFT_VERSION = #{SWIFT_LANGUAGE_VERSION};
 \t\t\t};
 \t\t\tname = Release;
 \t\t};
@@ -318,25 +339,25 @@ pbxproj = <<~PBXPROJ
 \t\t\t\tASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 \t\t\t\tCODE_SIGN_ENTITLEMENTS = AstronomyObservationPlanning.entitlements;
 \t\t\t\tCODE_SIGN_STYLE = Automatic;
-\t\t\t\tCURRENT_PROJECT_VERSION = 1;
+\t\t\t\tCURRENT_PROJECT_VERSION = #{APP_BUILD_VERSION};
 \t\t\t\tGENERATE_INFOPLIST_FILE = YES;
-\t\t\t\tINFOPLIST_KEY_CFBundleDisplayName = "Smart Scope Observation Planner";
-\t\t\t\tINFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.education";
-\t\t\t\tINFOPLIST_KEY_NSLocationUsageDescription = "Smart Scope uses your current location to create observing sites with GPS coordinates and altitude.";
-\t\t\t\tINFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Smart Scope uses your current location to create observing sites with GPS coordinates and altitude.";
-\t\t\t\tINFOPLIST_KEY_NSHumanReadableCopyright = "Copyright BigSkyAstro Richard Derry";
+\t\t\t\tINFOPLIST_KEY_CFBundleDisplayName = #{pbx_quoted_string(APP_PRODUCT_NAME)};
+\t\t\t\tINFOPLIST_KEY_LSApplicationCategoryType = #{pbx_quoted_string(APP_CATEGORY)};
+\t\t\t\tINFOPLIST_KEY_NSLocationUsageDescription = #{pbx_quoted_string(LOCATION_USAGE_DESCRIPTION)};
+\t\t\t\tINFOPLIST_KEY_NSLocationWhenInUseUsageDescription = #{pbx_quoted_string(LOCATION_USAGE_DESCRIPTION)};
+\t\t\t\tINFOPLIST_KEY_NSHumanReadableCopyright = #{pbx_quoted_string(COPYRIGHT_TEXT)};
 \t\t\t\tLD_RUNPATH_SEARCH_PATHS = (
 \t\t\t\t\t"$(inherited)",
 \t\t\t\t\t"@executable_path/../Frameworks",
 \t\t\t\t);
-\t\t\t\tMACOSX_DEPLOYMENT_TARGET = 15.0;
-\t\t\t\tMARKETING_VERSION = 1.0;
+\t\t\t\tMACOSX_DEPLOYMENT_TARGET = #{MACOS_DEPLOYMENT_TARGET};
+\t\t\t\tMARKETING_VERSION = #{APP_MARKETING_VERSION};
 \t\t\t\tONLY_ACTIVE_ARCH = NO;
 \t\t\t\tPRODUCT_BUNDLE_IDENTIFIER = #{APP_BUNDLE_ID};
-\t\t\t\tPRODUCT_NAME = #{quote(APP_PRODUCT_NAME)};
+\t\t\t\tPRODUCT_NAME = #{pbx_string(APP_PRODUCT_NAME)};
 \t\t\t\tSUPPORTED_PLATFORMS = macosx;
 \t\t\t\tSWIFT_EMIT_LOC_STRINGS = YES;
-\t\t\t\tSWIFT_VERSION = 6.0;
+\t\t\t\tSWIFT_VERSION = #{SWIFT_LANGUAGE_VERSION};
 \t\t\t};
 \t\t\tname = Debug;
 \t\t};
@@ -347,26 +368,26 @@ pbxproj = <<~PBXPROJ
 \t\t\t\tASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 \t\t\t\tCODE_SIGN_ENTITLEMENTS = AstronomyObservationPlanning.entitlements;
 \t\t\t\tCODE_SIGN_STYLE = Automatic;
-\t\t\t\tCURRENT_PROJECT_VERSION = 1;
+\t\t\t\tCURRENT_PROJECT_VERSION = #{APP_BUILD_VERSION};
 \t\t\t\tENABLE_HARDENED_RUNTIME = YES;
 \t\t\t\tGENERATE_INFOPLIST_FILE = YES;
-\t\t\t\tINFOPLIST_KEY_CFBundleDisplayName = "Smart Scope Observation Planner";
-\t\t\t\tINFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.education";
-\t\t\t\tINFOPLIST_KEY_NSLocationUsageDescription = "Smart Scope uses your current location to create observing sites with GPS coordinates and altitude.";
-\t\t\t\tINFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Smart Scope uses your current location to create observing sites with GPS coordinates and altitude.";
-\t\t\t\tINFOPLIST_KEY_NSHumanReadableCopyright = "Copyright BigSkyAstro Richard Derry";
+\t\t\t\tINFOPLIST_KEY_CFBundleDisplayName = #{pbx_quoted_string(APP_PRODUCT_NAME)};
+\t\t\t\tINFOPLIST_KEY_LSApplicationCategoryType = #{pbx_quoted_string(APP_CATEGORY)};
+\t\t\t\tINFOPLIST_KEY_NSLocationUsageDescription = #{pbx_quoted_string(LOCATION_USAGE_DESCRIPTION)};
+\t\t\t\tINFOPLIST_KEY_NSLocationWhenInUseUsageDescription = #{pbx_quoted_string(LOCATION_USAGE_DESCRIPTION)};
+\t\t\t\tINFOPLIST_KEY_NSHumanReadableCopyright = #{pbx_quoted_string(COPYRIGHT_TEXT)};
 \t\t\t\tLD_RUNPATH_SEARCH_PATHS = (
 \t\t\t\t\t"$(inherited)",
 \t\t\t\t\t"@executable_path/../Frameworks",
 \t\t\t\t);
-\t\t\t\tMACOSX_DEPLOYMENT_TARGET = 15.0;
-\t\t\t\tMARKETING_VERSION = 1.0;
+\t\t\t\tMACOSX_DEPLOYMENT_TARGET = #{MACOS_DEPLOYMENT_TARGET};
+\t\t\t\tMARKETING_VERSION = #{APP_MARKETING_VERSION};
 \t\t\t\tONLY_ACTIVE_ARCH = NO;
 \t\t\t\tPRODUCT_BUNDLE_IDENTIFIER = #{APP_BUNDLE_ID};
-\t\t\t\tPRODUCT_NAME = #{quote(APP_PRODUCT_NAME)};
+\t\t\t\tPRODUCT_NAME = #{pbx_string(APP_PRODUCT_NAME)};
 \t\t\t\tSUPPORTED_PLATFORMS = macosx;
 \t\t\t\tSWIFT_EMIT_LOC_STRINGS = YES;
-\t\t\t\tSWIFT_VERSION = 6.0;
+\t\t\t\tSWIFT_VERSION = #{SWIFT_LANGUAGE_VERSION};
 \t\t\t};
 \t\t\tname = Release;
 \t\t};
@@ -425,9 +446,9 @@ scheme = <<~XML
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "#{target_id}"
-               BuildableName = "#{APP_PRODUCT_NAME}.app"
-               BlueprintName = "#{PROJECT_NAME}"
-               ReferencedContainer = "container:#{PROJECT_NAME}.xcodeproj">
+               BuildableName = "#{xml_attribute("#{APP_PRODUCT_NAME}.app")}"
+               BlueprintName = "#{xml_attribute(PROJECT_NAME)}"
+               ReferencedContainer = "container:#{xml_attribute("#{PROJECT_NAME}.xcodeproj")}">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -455,9 +476,9 @@ scheme = <<~XML
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "#{target_id}"
-            BuildableName = "#{APP_PRODUCT_NAME}.app"
-            BlueprintName = "#{PROJECT_NAME}"
-            ReferencedContainer = "container:#{PROJECT_NAME}.xcodeproj">
+            BuildableName = "#{xml_attribute("#{APP_PRODUCT_NAME}.app")}"
+            BlueprintName = "#{xml_attribute(PROJECT_NAME)}"
+            ReferencedContainer = "container:#{xml_attribute("#{PROJECT_NAME}.xcodeproj")}">
          </BuildableReference>
       </BuildableProductRunnable>
    </LaunchAction>
@@ -472,9 +493,9 @@ scheme = <<~XML
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "#{target_id}"
-            BuildableName = "#{APP_PRODUCT_NAME}.app"
-            BlueprintName = "#{PROJECT_NAME}"
-            ReferencedContainer = "container:#{PROJECT_NAME}.xcodeproj">
+            BuildableName = "#{xml_attribute("#{APP_PRODUCT_NAME}.app")}"
+            BlueprintName = "#{xml_attribute(PROJECT_NAME)}"
+            ReferencedContainer = "container:#{xml_attribute("#{PROJECT_NAME}.xcodeproj")}">
          </BuildableReference>
       </BuildableProductRunnable>
    </ProfileAction>

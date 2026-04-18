@@ -263,6 +263,7 @@ struct CatalogWorkspaceView: View {
                 .background(isSelected ? Color.accentColor : Color.secondary.opacity(0.14))
                 .foregroundStyle(isSelected ? Color.white : Color.primary)
                 .clipShape(Capsule())
+                .contentShape(Capsule())
         }
         .buttonStyle(.plain)
     }

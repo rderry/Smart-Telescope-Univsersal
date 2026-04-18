@@ -133,11 +133,11 @@ struct BuildBadgeView: View {
     var body: some View {
         if !AppBuildInfo.releaseLabel.isEmpty {
             Text(AppBuildInfo.releaseLabel)
-                .font(AppTypography.bodyEmphasized)
+                .font(.system(size: 12.8, weight: .regular, design: .rounded))
                 .foregroundStyle(appBrandRed)
                 .lineLimit(1)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 8)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
                 .background(.regularMaterial, in: Capsule())
                 .overlay(
                     Capsule()

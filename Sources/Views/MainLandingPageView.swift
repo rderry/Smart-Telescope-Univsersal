@@ -330,6 +330,7 @@ struct MainLandingPageView: View {
                                         .stroke(.white.opacity(0.16), lineWidth: 1)
                                 )
                         )
+                        .contentShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                     }
                     .buttonStyle(.plain)
                 }
@@ -452,6 +453,7 @@ struct MainLandingPageView: View {
                                             .stroke(.white.opacity(0.16), lineWidth: 1)
                                     )
                             )
+                            .contentShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                         }
                         .buttonStyle(.plain)
 
@@ -581,6 +583,7 @@ struct MainLandingPageView: View {
                                         .stroke(.white.opacity(0.16), lineWidth: 1)
                                 )
                         )
+                        .contentShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                     }
                     .buttonStyle(.plain)
                 }
@@ -626,7 +629,7 @@ struct MainLandingPageView: View {
                     .layoutPriority(1)
             }
 
-            Text("Open the Equipment Data Bases workspace to manage and refresh the equipment catalogs used for planning.")
+            Text("Open the Equipment Databases workspace to manage and refresh the equipment catalogs used for planning.")
                 .font(AppTypography.body)
                 .foregroundStyle(Color.white.opacity(0.78))
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -638,7 +641,7 @@ struct MainLandingPageView: View {
                 selectedSection = .databaseMaintenance
             } label: {
                 homeCardButtonLabel(
-                    title: "Open Equipment Data Bases",
+                    title: "Open Equipment Databases",
                     systemImage: "arrow.right",
                     alignment: .leading
                 )
@@ -892,6 +895,7 @@ extension View {
                             .stroke(Color.white.opacity(0.72), lineWidth: 1)
                     )
             )
+            .contentShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
             .shadow(color: .black.opacity(0.10), radius: 10, y: 5)
     }
 }

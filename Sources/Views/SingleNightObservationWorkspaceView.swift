@@ -71,6 +71,19 @@ private struct SingleNightTargetChoice: Identifiable, Hashable {
         return "Magnitude \(magnitude.formatted(.number.precision(.fractionLength(1))))"
     }
 
+    var apparentMagnitudeSummary: String {
+        guard let magnitude else { return "Apparent magnitude unavailable" }
+        return "Apparent magnitude \(magnitude.formatted(.number.precision(.fractionLength(1))))"
+    }
+
+    var shortenedName: String {
+        let maximumLength = 34
+        guard name.count > maximumLength else { return name }
+        let trimmedPrefix = String(name.prefix(maximumLength))
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        return "\(trimmedPrefix)..."
+    }
+
     func coordinates(at date: Date) -> SingleNightEquatorialCoordinate {
         let sourceCoordinates = SingleNightEquatorialCoordinate(
             rightAscensionHours: rightAscensionHours,
@@ -164,7 +177,16 @@ private struct SingleNightEquatorialCoordinate {
 
 private struct SingleNightTargetVisibility {
     let visibleFrom: Date
+    let zenithDate: Date
+    let zenithAltitudeDegrees: Double
     let skyPosition: LocalSkyPosition
+}
+
+private struct SingleNightTargetTypeFilterOption: Identifiable {
+    let name: String
+    let count: Int
+
+    var id: String { name }
 }
 
 private enum ObservationMeridiem: String, CaseIterable, Identifiable {
@@ -174,13 +196,84 @@ private enum ObservationMeridiem: String, CaseIterable, Identifiable {
     var id: String { rawValue }
 }
 
+private enum SingleNightTargetSortMode: String, CaseIterable, Identifiable, Equatable {
+    case firstViewable
+    case zenith
+    case targetIdentifier
+    case targetName
+
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .firstViewable:
+            return "First View"
+        case .zenith:
+            return "Zenith Time"
+        case .targetIdentifier:
+            return "Target ID"
+        case .targetName:
+            return "Target Name"
+        }
+    }
+}
+
+private struct SingleNightLifecycleModifier: ViewModifier {
+    let siteIDs: [UUID]
+    let objectIDs: [String]
+    let transientIDs: [String]
+    let selectedLocationID: UUID?
+    let observationDateTime: Date
+    let observationTimeZoneIdentifier: String
+    let observationMeridiem: ObservationMeridiem
+    let selectedTargetTypeNames: Set<String>
+    let dsoLimitingMagnitudeText: String
+    let targetSkyLimitTexts: [String]
+    let selectedTargetID: String?
+    let addedTargetIDs: [String]
+    let weatherSourceRequestKey: String
+    let observationWeatherRequestKey: String
+    let onAppearAction: () -> Void
+    let onSitesChanged: () -> Void
+    let onTargetDatabaseChanged: () -> Void
+    let onSelectedLocationChanged: () -> Void
+    let onObservationDateTimeChanged: () -> Void
+    let onFilterInputsChanged: () -> Void
+    let onObservationMeridiemChanged: () -> Void
+    let onSelectedTargetTypesChanged: () -> Void
+    let onSelectedTargetChanged: () -> Void
+    let onAddedTargetsChanged: () -> Void
+    let onRefreshWeatherSource: () async -> Void
+    let onRefreshObservationWeather: () async -> Void
+    let onDisappearAction: () -> Void
+
+    func body(content: Content) -> some View {
+        content
+            .onAppear(perform: onAppearAction)
+            .onChange(of: siteIDs) { _, _ in onSitesChanged() }
+            .onChange(of: objectIDs) { _, _ in onTargetDatabaseChanged() }
+            .onChange(of: transientIDs) { _, _ in onTargetDatabaseChanged() }
+            .onChange(of: selectedLocationID) { _, _ in onSelectedLocationChanged() }
+            .onChange(of: observationDateTime) { _, _ in onObservationDateTimeChanged() }
+            .onChange(of: observationTimeZoneIdentifier) { _, _ in onFilterInputsChanged() }
+            .onChange(of: observationMeridiem) { _, _ in onObservationMeridiemChanged() }
+            .onChange(of: selectedTargetTypeNames) { _, _ in onSelectedTargetTypesChanged() }
+            .onChange(of: dsoLimitingMagnitudeText) { _, _ in onFilterInputsChanged() }
+            .onChange(of: targetSkyLimitTexts) { _, _ in onFilterInputsChanged() }
+            .onChange(of: selectedTargetID) { _, _ in onSelectedTargetChanged() }
+            .onChange(of: addedTargetIDs) { _, _ in onAddedTargetsChanged() }
+            .task(id: weatherSourceRequestKey) { await onRefreshWeatherSource() }
+            .task(id: observationWeatherRequestKey) { await onRefreshObservationWeather() }
+            .onDisappear(perform: onDisappearAction)
+    }
+}
+
 struct SingleNightObservationWorkspaceView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(AppRuntimeState.self) private var runtimeState
 
     private enum ObservationTimeField: Hashable {
-        case hour
-        case minute
+        case time
     }
 
     @Query(sort: \ObservingSite.name) private var sites: [ObservingSite]
@@ -194,15 +287,15 @@ struct SingleNightObservationWorkspaceView: View {
     @State private var observationDateTime = Date()
     @State private var observationTimeZoneIdentifier = TimeZone.current.identifier
     @State private var telescopeCaptureStartOverrideDate: Date?
-    @State private var observationHourText = ""
-    @State private var observationMinuteText = ""
+    @State private var observationTimeText = ""
     @State private var observationMeridiem = ObservationMeridiem.am
-    @State private var dsoLimitingMagnitudeText = "11.0"
-    @State private var targetAzimuthLowLimitText = "0"
-    @State private var targetAzimuthHighLimitText = "360"
-    @State private var targetAltitudeLowLimitText = "0"
-    @State private var targetAltitudeHighLimitText = "90"
+    @State private var dsoLimitingMagnitudeText = "8"
+    @State private var targetAzimuthLowLimitText = ""
+    @State private var targetAzimuthHighLimitText = ""
+    @State private var targetAltitudeLowLimitText = ""
+    @State private var targetAltitudeHighLimitText = ""
     @State private var selectedTargetTypeNames = Set<String>()
+    @State private var targetSortMode = SingleNightTargetSortMode.firstViewable
     @State private var visibleTargetMetadata: [String: SingleNightTargetVisibility] = [:]
     @State private var usesVisibilityFilter = false
     @State private var locationPickerIsPresented = false
@@ -213,6 +306,14 @@ struct SingleNightObservationWorkspaceView: View {
     @State private var saveListPromptIsPresented = false
     @State private var saveListNameDraft = ""
     @State private var savedListStatusMessage: String?
+    @State private var visibilityRecomputeTask: Task<Void, Never>?
+    @State private var observationCountry: ObservationCountryDetails?
+    @State private var weatherSource = WeatherSourcePolicy.source(for: nil)
+    @State private var observationWeatherSnapshot: ObservationWeatherSnapshot?
+    @State private var isResolvingObservationCountry = false
+    @State private var isLoadingObservationWeather = false
+    @State private var weatherSourceMessage = ""
+    @State private var observationWeatherMessage = ""
     @FocusState private var focusedObservationTimeField: ObservationTimeField?
     private let compactBodyFont = Font.system(size: 13, weight: .regular, design: .rounded)
     private let compactStrongFont = Font.system(size: 14, weight: .semibold, design: .rounded)
@@ -221,8 +322,12 @@ struct SingleNightObservationWorkspaceView: View {
     private let labelColor = Color.yellow
     private let observationTimeTextColor = Color(red: 0.24, green: 0.58, blue: 1.0)
     private let sidebarWidth: CGFloat = 320
+    private let contentCardMaxWidth: CGFloat = .infinity
+    private let targetFeedVisibleHeight: CGFloat = 106
+    private let heroMetricWidth: CGFloat = 248
+    private let heroMetricHeight: CGFloat = 106
     private let transientFilterLabel = "Transient"
-    private static let defaultDSOLimitingMagnitude = 11.0
+    private static let defaultDSOLimitingMagnitude = 8.0
     private static let minimumDSOLimitingMagnitude = -2.0
     private static let maximumDSOLimitingMagnitude = 16.0
     private static let defaultTargetAzimuthLowLimit = 0.0
@@ -235,161 +340,200 @@ struct SingleNightObservationWorkspaceView: View {
     private static let maximumTargetAltitudeLimit = 90.0
 
     var body: some View {
-        GeometryReader { proxy in
-            VStack(spacing: 8) {
-                heroSection
-                    .padding(.horizontal, 18)
-                    .padding(.top, 6)
+        singleNightRoot
+    }
 
-                if proxy.size.width >= 760 {
-                    HStack(alignment: .top, spacing: 12) {
-                        currentListSidebar(height: sidebarHeight(for: proxy.size.height))
-                            .frame(width: sidebarWidth)
-
-                        VStack(alignment: .leading, spacing: 8) {
-                            centeredLocationCard
-                            centeredTargetFilterCard(maxHeight: targetFilterMaximumHeight(for: proxy.size.height, compact: false))
-                            centeredTargetSelectionCard
-                            Spacer(minLength: 0)
-                        }
-                        .padding(.trailing, 18)
-                        .padding(.bottom, 12)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                    }
-                    .padding(.horizontal, 18)
-                    .padding(.bottom, 8)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-                } else {
-                    VStack(alignment: .leading, spacing: 8) {
-                        currentListSidebar(height: max(proxy.size.height * 0.30, 260))
-                        centeredLocationCard
-                        centeredTargetFilterCard(maxHeight: targetFilterMaximumHeight(for: proxy.size.height, compact: true))
-                        centeredTargetSelectionCard
-                        Spacer(minLength: 0)
-                    }
-                    .padding(.horizontal, 18)
-                    .padding(.bottom, 12)
-                    .frame(maxWidth: 1180, alignment: .leading)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+    private var singleNightRoot: some View {
+        singleNightGeometry
+            .modifier(singleNightLifecycleModifier)
+            .sheet(isPresented: $saveListPromptIsPresented) {
+                SingleNightSaveListSheet(
+                    title: "Save For Later Use",
+                    subtitle: "Create a named list of your selected targets so you can reuse them in a future plan.",
+                    locationName: selectedLocation?.name,
+                    targetCount: addedTargets.count,
+                    name: $saveListNameDraft
+                ) { savedName in
+                    saveCurrentListForLaterUse(named: savedName)
                 }
             }
+            .sheet(isPresented: $locationPickerIsPresented) {
+                SingleNightLocationPickerSheet(
+                    sites: sortedLocations,
+                    selectedLocationID: $locationPickerSelectionID,
+                    currentDefaultLocationID: LocationPreferenceStore.defaultSiteID(),
+                    onCancel: {
+                        locationPickerIsPresented = false
+                    },
+                    onSetDefault: { siteID in
+                        applyLocationSelection(siteID, setAsDefault: true)
+                        locationPickerIsPresented = false
+                    }
+                )
+            }
+            .alert("Saved Lists", isPresented: savedListAlertIsPresented) {
+                Button("OK") {
+                    savedListStatusMessage = nil
+                }
+            } message: {
+                Text(savedListStatusMessage ?? "")
+            }
+    }
+
+    private var singleNightLifecycleModifier: SingleNightLifecycleModifier {
+        SingleNightLifecycleModifier(
+            siteIDs: sites.map(\.id),
+            objectIDs: objects.map(\.catalogID),
+            transientIDs: transientItems.map(\.feedID),
+            selectedLocationID: selectedLocationID,
+            observationDateTime: observationDateTime,
+            observationTimeZoneIdentifier: observationTimeZoneIdentifier,
+            observationMeridiem: observationMeridiem,
+            selectedTargetTypeNames: selectedTargetTypeNames,
+            dsoLimitingMagnitudeText: dsoLimitingMagnitudeText,
+            targetSkyLimitTexts: targetSkyLimitTexts,
+            selectedTargetID: selectedTargetID,
+            addedTargetIDs: addedTargetIDs,
+            weatherSourceRequestKey: weatherSourceRequestKey,
+            observationWeatherRequestKey: observationWeatherRequestKey,
+            onAppearAction: handleSingleNightAppear,
+            onSitesChanged: handleSitesChanged,
+            onTargetDatabaseChanged: handleTargetDatabaseChanged,
+            onSelectedLocationChanged: handleSelectedLocationChanged,
+            onObservationDateTimeChanged: handleObservationDateTimeChanged,
+            onFilterInputsChanged: handleFilterInputsChanged,
+            onObservationMeridiemChanged: { applyObservationTimeEntry() },
+            onSelectedTargetTypesChanged: handleSelectedTargetTypesChanged,
+            onSelectedTargetChanged: persistSingleNightDraft,
+            onAddedTargetsChanged: persistSingleNightDraft,
+            onRefreshWeatherSource: refreshWeatherSource,
+            onRefreshObservationWeather: refreshObservationWeather,
+            onDisappearAction: cancelVisibilityRecompute
+        )
+    }
+
+    private var singleNightGeometry: some View {
+        GeometryReader(content: singleNightGeometryContent)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+    }
+
+    private func singleNightGeometryContent(_ proxy: GeometryProxy) -> AnyView {
+        AnyView(singleNightContent(proxy: proxy))
+    }
+
+    @ViewBuilder
+    private func singleNightContent(proxy: GeometryProxy) -> some View {
+        VStack(spacing: 8) {
+            heroSection
+                .padding(.horizontal, 18)
+                .padding(.top, 6)
+
+            if proxy.size.width >= 760 {
+                wideSingleNightContent(proxy: proxy)
+            } else {
+                compactSingleNightContent(proxy: proxy)
+            }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        .onAppear {
-            restoreSingleNightDraft()
-            applyPendingTelescopeCaptureStartIfNeeded()
-            syncSelectedLocation()
-            syncObservationTimeZoneFromLocation()
-            syncObservationTimeFieldsFromDate()
-            syncSelectedTargetTypes()
-            recomputeVisibleTargets()
-            persistSingleNightDraft()
-        }
-        .onChange(of: sites.map(\.id)) { _, _ in
-            syncSelectedLocation()
-            syncObservationTimeZoneFromLocation()
-            recomputeVisibleTargets()
-            persistSingleNightDraft()
-        }
-        .onChange(of: objects.map(\.catalogID)) { _, _ in
-            syncSelectedTargetTypes()
-            recomputeVisibleTargets()
-            persistSingleNightDraft()
-        }
-        .onChange(of: transientItems.map(\.feedID)) { _, _ in
-            syncSelectedTargetTypes()
-            recomputeVisibleTargets()
-            persistSingleNightDraft()
-        }
-        .onChange(of: selectedLocationID) { _, _ in
-            syncObservationTimeZoneFromLocation()
-            recomputeVisibleTargets()
-            persistSingleNightDraft()
-        }
-        .onChange(of: observationDateTime) { _, _ in
-            let normalizedDate = normalizedObservationDate(observationDateTime)
-            if normalizedDate != observationDateTime {
-                observationDateTime = normalizedDate
-            } else {
-                clearTelescopeCaptureStartOverrideIfNeeded()
-                syncObservationTimeFieldsFromDate()
-                recomputeVisibleTargets()
-                persistSingleNightDraft()
+    }
+
+    private func wideSingleNightContent(proxy: GeometryProxy) -> some View {
+        HStack(alignment: .top, spacing: 12) {
+            currentListSidebar(height: sidebarHeight(for: proxy.size.height))
+                .frame(width: sidebarWidth)
+
+            VStack(alignment: .leading, spacing: 10) {
+                centeredTargetFilterCard(maxHeight: targetFilterMaximumHeight(for: proxy.size.height, compact: false))
+                centeredTargetSelectionCard
+                Spacer(minLength: 0)
             }
+            .padding(.trailing, 18)
+            .padding(.bottom, 12)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
-        .onChange(of: observationTimeZoneIdentifier) { _, _ in
-            recomputeVisibleTargets()
-            persistSingleNightDraft()
+        .padding(.horizontal, 18)
+        .padding(.bottom, 8)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+    }
+
+    private func compactSingleNightContent(proxy: GeometryProxy) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            currentListSidebar(height: max(proxy.size.height * 0.30, 260))
+            centeredTargetFilterCard(maxHeight: targetFilterMaximumHeight(for: proxy.size.height, compact: true))
+            centeredTargetSelectionCard
+            Spacer(minLength: 0)
         }
-        .onChange(of: observationMeridiem) { _, _ in
-            applyObservationTimeEntry()
+        .padding(.horizontal, 18)
+        .padding(.bottom, 12)
+        .frame(maxWidth: 1180, alignment: .leading)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+    }
+
+    private func handleSingleNightAppear() {
+        restoreSingleNightDraft()
+        applyPendingTelescopeCaptureStartIfNeeded()
+        syncSelectedLocation()
+        syncObservationTimeZoneFromLocation()
+        syncObservationTimeFieldsFromDate(force: telescopeCaptureStartOverrideDate != nil)
+        syncSelectedTargetTypes()
+        recomputeVisibleTargets()
+        persistSingleNightDraft()
+    }
+
+    private func handleSitesChanged() {
+        syncSelectedLocation()
+        syncObservationTimeZoneFromLocation()
+        recomputeVisibleTargets()
+        persistSingleNightDraft()
+    }
+
+    private func handleTargetDatabaseChanged() {
+        syncSelectedTargetTypes()
+        recomputeVisibleTargets()
+        persistSingleNightDraft()
+    }
+
+    private func handleSelectedLocationChanged() {
+        syncObservationTimeZoneFromLocation()
+        recomputeVisibleTargets()
+        persistSingleNightDraft()
+    }
+
+    private func handleObservationDateTimeChanged() {
+        let normalizedDate = normalizedObservationDate(observationDateTime)
+        if normalizedDate != observationDateTime {
+            observationDateTime = normalizedDate
+            return
         }
-        .onChange(of: selectedTargetTypeNames) { _, _ in
-            syncSelectedTarget()
-            persistSingleNightDraft()
-        }
-        .onChange(of: dsoLimitingMagnitudeText) { _, _ in
-            recomputeVisibleTargets()
-            syncSelectedTargetTypes()
-            syncSelectedTarget()
-            persistSingleNightDraft()
-        }
-        .onChange(of: targetSkyLimitTexts) { _, _ in
-            recomputeVisibleTargets()
-            syncSelectedTargetTypes()
-            syncSelectedTarget()
-            persistSingleNightDraft()
-        }
-        .onChange(of: selectedTargetID) { _, _ in
-            persistSingleNightDraft()
-        }
-        .onChange(of: addedTargetIDs) { _, _ in
-            persistSingleNightDraft()
-        }
-        .sheet(isPresented: $saveListPromptIsPresented) {
-            SingleNightSaveListSheet(
-                title: "Save For Later Use",
-                subtitle: "Create a named list of your selected targets so you can reuse them in a future plan.",
-                locationName: selectedLocation?.name,
-                targetCount: addedTargets.count,
-                name: $saveListNameDraft
-            ) { savedName in
-                saveCurrentListForLaterUse(named: savedName)
-            }
-        }
-        .sheet(isPresented: $locationPickerIsPresented) {
-            SingleNightLocationPickerSheet(
-                sites: sortedLocations,
-                selectedLocationID: $locationPickerSelectionID,
-                currentDefaultLocationID: LocationPreferenceStore.defaultSiteID(),
-                onCancel: {
-                    locationPickerIsPresented = false
-                },
-                onSetDefault: { siteID in
-                    applyLocationSelection(siteID, setAsDefault: true)
-                    locationPickerIsPresented = false
-                }
-            )
-        }
-        .alert("Saved Lists", isPresented: savedListAlertIsPresented) {
-            Button("OK") {
-                savedListStatusMessage = nil
-            }
-        } message: {
-            Text(savedListStatusMessage ?? "")
-        }
+
+        clearTelescopeCaptureStartOverrideIfNeeded()
+        syncObservationTimeFieldsFromDate()
+        scheduleVisibleTargetRecompute()
+        persistSingleNightDraft()
+    }
+
+    private func handleSelectedTargetTypesChanged() {
+        syncSelectedTarget()
+        persistSingleNightDraft()
+    }
+
+    private func handleFilterInputsChanged() {
+        scheduleVisibleTargetRecompute()
+        persistSingleNightDraft()
+    }
+
+    private func cancelVisibilityRecompute() {
+        visibilityRecomputeTask?.cancel()
     }
 
     private func sidebarHeight(for availableHeight: CGFloat) -> CGFloat {
-        min(max(availableHeight - 245, 340), 520)
+        min(max(availableHeight - 214, 420), max(420, availableHeight - 92))
     }
 
     private func targetFilterMaximumHeight(for availableHeight: CGFloat, compact: Bool) -> CGFloat {
-        let reservedHeight: CGFloat = compact ? 650 : 515
-        let minimumHeight: CGFloat = compact ? 170 : 190
-        let maximumHeight: CGFloat = compact ? 230 : 340
+        let reservedHeight: CGFloat = compact ? 520 : 390
+        let minimumHeight: CGFloat = compact ? 320 : 330
+        let maximumHeight: CGFloat = compact ? 460 : 450
         return min(max(availableHeight - reservedHeight, minimumHeight), maximumHeight)
     }
 
@@ -397,6 +541,9 @@ struct SingleNightObservationWorkspaceView: View {
         VStack(alignment: .leading, spacing: 6) {
             ViewThatFits(in: .horizontal) {
                 HStack(alignment: .top, spacing: 12) {
+                    heroLocationControl
+                        .frame(width: 188, alignment: .topLeading)
+
                     VStack(alignment: .center, spacing: 4) {
                         Text("Single Night Observation")
                             .font(.system(size: 18, weight: .bold, design: .rounded))
@@ -414,7 +561,7 @@ struct SingleNightObservationWorkspaceView: View {
                             .fixedSize(horizontal: false, vertical: true)
                             .multilineTextAlignment(.center)
 
-                        viewingInfoMetricBlock
+                        heroObservationInfoBlocks
                             .frame(maxWidth: 760, alignment: .center)
                     }
                     .frame(maxWidth: .infinity, alignment: .center)
@@ -424,7 +571,10 @@ struct SingleNightObservationWorkspaceView: View {
                 }
                 .frame(maxWidth: .infinity, alignment: .trailing)
 
-                VStack(alignment: .center, spacing: 6) {
+                VStack(alignment: .leading, spacing: 6) {
+                    heroLocationControl
+                        .frame(maxWidth: 260, alignment: .leading)
+
                     Text("Single Night Observation")
                         .font(.system(size: 18, weight: .bold, design: .rounded))
                         .foregroundStyle(Color.yellow)
@@ -441,12 +591,13 @@ struct SingleNightObservationWorkspaceView: View {
                         .fixedSize(horizontal: false, vertical: true)
                         .multilineTextAlignment(.center)
 
-                    viewingInfoMetricBlock
+                    heroObservationInfoBlocks
                         .frame(maxWidth: 760, alignment: .center)
 
                     singleNightMoonInfoBlock
                         .frame(maxWidth: 620, alignment: .trailing)
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
             .frame(maxWidth: .infinity)
 
@@ -460,6 +611,59 @@ struct SingleNightObservationWorkspaceView: View {
         .frame(maxWidth: .infinity, alignment: .center)
         .background(singleNightCardBackground(cornerRadius: 28, fill: .regularMaterial))
         .shadow(color: .black.opacity(0.10), radius: 18, y: 10)
+    }
+
+    private var heroLocationControl: some View {
+        VStack(alignment: .leading, spacing: 5) {
+            Text("LOCATION")
+                .font(.system(size: 10, weight: .semibold, design: .rounded))
+                .foregroundStyle(labelColor.opacity(0.84))
+
+            Text(selectedLocation?.name ?? (sites.isEmpty ? "No saved location" : "Choose a location"))
+                .font(.system(size: 12, weight: .semibold, design: .rounded))
+                .foregroundStyle(.white.opacity(0.94))
+                .lineLimit(2)
+                .minimumScaleFactor(0.72)
+                .fixedSize(horizontal: false, vertical: true)
+
+            if sites.isEmpty {
+                Button {
+                    cancelSingleNightPlan()
+                } label: {
+                    Label("Cancel", systemImage: "xmark")
+                        .font(.system(size: 11, weight: .semibold, design: .rounded))
+                        .frame(maxWidth: .infinity, alignment: .center)
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.mini)
+            } else {
+                HStack(spacing: 6) {
+                    Button {
+                        presentLocationPicker()
+                    } label: {
+                        Label("Change", systemImage: "location")
+                            .font(.system(size: 11, weight: .semibold, design: .rounded))
+                            .frame(maxWidth: .infinity, alignment: .center)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.mini)
+
+                    Button {
+                        cancelSingleNightPlan()
+                    } label: {
+                        Text("Cancel")
+                            .font(.system(size: 11, weight: .semibold, design: .rounded))
+                            .frame(maxWidth: .infinity, alignment: .center)
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.mini)
+                }
+            }
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 7)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(singleNightCardBackground(cornerRadius: 18, fill: .thinMaterial))
     }
 
     private func currentListSidebar(height: CGFloat) -> some View {
@@ -583,105 +787,14 @@ struct SingleNightObservationWorkspaceView: View {
         .background(singleNightCardBackground())
     }
 
-    private var locationCard: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            if sites.isEmpty {
-                HStack(alignment: .center, spacing: 10) {
-                    Text("No saved locations are available yet.")
-                        .font(compactStrongFont)
-                        .foregroundStyle(labelColor.opacity(0.92))
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.8)
-                    
-                    Spacer(minLength: 0)
-
-                    Button("Cancel") {
-                        cancelSingleNightPlan()
-                    }
-                    .buttonStyle(.bordered)
-                }
-            } else {
-                ViewThatFits(in: .horizontal) {
-                    HStack(alignment: .center, spacing: 10) {
-                        Text(selectedLocation?.name ?? "Observation Location")
-                            .font(compactStrongFont)
-                            .foregroundStyle(labelColor.opacity(0.92))
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.72)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-
-                        Button {
-                            presentLocationPicker()
-                        } label: {
-                            Label("Change Location", systemImage: "location")
-                                .frame(minWidth: 150)
-                        }
-                        .buttonStyle(.borderedProminent)
-
-                        Button("Cancel") {
-                            cancelSingleNightPlan()
-                        }
-                        .buttonStyle(.bordered)
-                    }
-
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text(selectedLocation?.name ?? "Observation Location")
-                            .font(compactStrongFont)
-                            .foregroundStyle(labelColor.opacity(0.92))
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.72)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-
-                        Button {
-                            presentLocationPicker()
-                        } label: {
-                            Label("Change Location", systemImage: "location")
-                                .frame(maxWidth: .infinity)
-                        }
-                        .buttonStyle(.borderedProminent)
-
-                        HStack {
-                            Spacer(minLength: 0)
-                            Button("Cancel") {
-                                cancelSingleNightPlan()
-                            }
-                            .buttonStyle(.bordered)
-                        }
-                    }
-                }
-            }
-        }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 8)
-        .frame(maxWidth: 760, alignment: .leading)
-        .background(singleNightCardBackground())
-    }
-
-    private var centeredLocationCard: some View {
-        HStack {
-            Spacer(minLength: 0)
-            locationCard
-            Spacer(minLength: 0)
-        }
-        .frame(maxWidth: .infinity, alignment: .center)
-    }
-
     private var centeredTargetSelectionCard: some View {
-        HStack {
-            Spacer(minLength: 0)
-            targetSelectionCard
-            Spacer(minLength: 0)
-        }
-        .frame(maxWidth: .infinity, alignment: .center)
+        targetSelectionCard
+            .frame(maxWidth: .infinity, alignment: .top)
     }
 
     private func centeredTargetFilterCard(maxHeight: CGFloat) -> some View {
-        HStack {
-            Spacer(minLength: 0)
-            targetFilterCard(maxHeight: maxHeight)
-            Spacer(minLength: 0)
-        }
-        .frame(maxWidth: .infinity, alignment: .center)
+        targetFilterCard(maxHeight: maxHeight)
+            .frame(maxWidth: .infinity, alignment: .center)
     }
 
     private func targetFilterCard(maxHeight: CGFloat) -> some View {
@@ -690,7 +803,7 @@ struct SingleNightObservationWorkspaceView: View {
                 .padding(10)
         }
         .scrollIndicators(.visible)
-        .frame(maxWidth: 760, maxHeight: maxHeight, alignment: .topLeading)
+        .frame(maxWidth: contentCardMaxWidth, maxHeight: maxHeight, alignment: .topLeading)
         .background(singleNightCardBackground())
         .clipShape(RoundedRectangle(cornerRadius: 30, style: .continuous))
     }
@@ -700,8 +813,7 @@ struct SingleNightObservationWorkspaceView: View {
             ViewThatFits(in: .horizontal) {
                 HStack(alignment: .top, spacing: 12) {
                     cardHeading(
-                        title: "Target Database Filters",
-                        subtitle: "Choose target types, DSO magnitudes, azimuth limits, and altitude limits for the Targets card, and refresh the astronomical databases when you need new data."
+                        title: "Target Database Filters"
                     )
 
                     VStack(alignment: .trailing, spacing: 8) {
@@ -729,8 +841,7 @@ struct SingleNightObservationWorkspaceView: View {
 
                 VStack(alignment: .leading, spacing: 10) {
                     cardHeading(
-                        title: "Target Database Filters",
-                        subtitle: "Choose target types, DSO magnitudes, azimuth limits, and altitude limits for the Targets card, and refresh the astronomical databases when you need new data."
+                        title: "Target Database Filters"
                     )
 
                     HStack {
@@ -760,10 +871,10 @@ struct SingleNightObservationWorkspaceView: View {
                 }
             }
 
-            dsoLimitingMagnitudeControl
-            targetSkyLimitControl
+            telescopeImagingStartTimeControl
+            targetSortOptionsControl
 
-            if availableTargetTypes.isEmpty {
+            if availableTargetTypeOptions.isEmpty {
                 Text("No target types are available yet.")
                     .font(compactBodyFont)
                     .foregroundStyle(.white.opacity(0.84))
@@ -775,8 +886,8 @@ struct SingleNightObservationWorkspaceView: View {
                     alignment: .leading,
                     spacing: 6
                 ) {
-                    ForEach(availableTargetTypes, id: \.self) { typeName in
-                        Toggle("\(typeName) (\(targetTypeCount(for: typeName)))", isOn: targetTypeBinding(for: typeName))
+                    ForEach(availableTargetTypeOptions) { option in
+                        Toggle("\(option.name) (\(option.count))", isOn: targetTypeBinding(for: option.name))
                             .toggleStyle(.checkbox)
                             .font(compactBodyFont)
                             .foregroundStyle(.white.opacity(0.92))
@@ -784,18 +895,58 @@ struct SingleNightObservationWorkspaceView: View {
                 }
             }
         }
-        .frame(maxWidth: 760, alignment: .leading)
+        .frame(maxWidth: contentCardMaxWidth, alignment: .leading)
+    }
+
+    private var telescopeImagingStartTimeControl: some View {
+        VStack(alignment: .center, spacing: 10) {
+            Text("Observation Location Restraints and Telescope Beginning of Observation Window")
+                .font(compactSelectorLabelFont)
+                .foregroundStyle(labelColor.opacity(0.92))
+                .multilineTextAlignment(.center)
+                .lineLimit(2)
+                .minimumScaleFactor(0.82)
+                .frame(maxWidth: .infinity, alignment: .center)
+
+            LazyVGrid(
+                columns: [
+                    GridItem(.adaptive(minimum: 190), spacing: 12, alignment: .center)
+                ],
+                alignment: .center,
+                spacing: 10
+            ) {
+                observationDateEntry
+                telescopeImagingStartFields
+                dsoLimitingMagnitudeControl
+                targetAzimuthLimitControl
+                targetAltitudeLimitControl
+            }
+        }
+        .padding(10)
+        .frame(maxWidth: .infinity, alignment: .center)
+        .background(singleNightCardBackground(cornerRadius: 18, fill: .ultraThinMaterial))
+    }
+
+    private var telescopeImagingStartFields: some View {
+        HStack(alignment: .top, spacing: 8) {
+            observationTimeEntry
+                .frame(width: 116, alignment: .leading)
+
+            observationMeridiemMenu
+        }
+        .frame(minWidth: 170, maxWidth: .infinity, alignment: .center)
     }
 
     private var dsoLimitingMagnitudeControl: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .center, spacing: 6) {
             ViewThatFits(in: .horizontal) {
                 HStack(alignment: .center, spacing: 10) {
                     Text("DSO Limiting Magnitude")
                         .font(compactSelectorLabelFont)
                         .foregroundStyle(labelColor.opacity(0.92))
+                        .multilineTextAlignment(.center)
 
-                    TextField("11.0", text: $dsoLimitingMagnitudeText)
+                    TextField("8", text: $dsoLimitingMagnitudeText)
                         .textFieldStyle(.roundedBorder)
                         .foregroundStyle(observationTimeTextColor)
                         .frame(width: 72)
@@ -817,13 +968,14 @@ struct SingleNightObservationWorkspaceView: View {
                         .foregroundStyle(.white.opacity(0.84))
                 }
 
-                VStack(alignment: .leading, spacing: 6) {
+                VStack(alignment: .center, spacing: 6) {
                     Text("DSO Limiting Magnitude")
                         .font(compactSelectorLabelFont)
                         .foregroundStyle(labelColor.opacity(0.92))
+                        .multilineTextAlignment(.center)
 
                     HStack(spacing: 10) {
-                        TextField("11.0", text: $dsoLimitingMagnitudeText)
+                        TextField("8", text: $dsoLimitingMagnitudeText)
                             .textFieldStyle(.roundedBorder)
                             .foregroundStyle(observationTimeTextColor)
                             .frame(width: 72)
@@ -847,79 +999,56 @@ struct SingleNightObservationWorkspaceView: View {
                 }
             }
 
-            Text("Deep-sky objects fainter than magnitude \(formattedMagnitudeLimit(dsoLimitingMagnitude)) are hidden from the target database. Transient targets remain available.")
-                .font(compactBodyFont)
-                .foregroundStyle(.white.opacity(0.82))
-                .fixedSize(horizontal: false, vertical: true)
-
-            Text("Lower magnitude numbers are brighter.")
-                .font(compactCaptionFont)
-                .foregroundStyle(.white.opacity(0.74))
-                .fixedSize(horizontal: false, vertical: true)
         }
-        .padding(8)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(singleNightCardBackground(cornerRadius: 18, fill: .ultraThinMaterial))
+        .frame(minWidth: 190, maxWidth: .infinity, alignment: .center)
     }
 
-    private var targetSkyLimitControl: some View {
+    private var targetAzimuthLimitControl: some View {
+        targetLimitGroup(
+            title: "Azimuth Limits",
+            lowTitle: "Low",
+            highTitle: "High",
+            lowText: $targetAzimuthLowLimitText,
+            highText: $targetAzimuthHighLimitText,
+            lowValue: targetAzimuthLowLimitBinding,
+            highValue: targetAzimuthHighLimitBinding
+        )
+    }
+
+    private var targetAltitudeLimitControl: some View {
+        targetLimitGroup(
+            title: "Altitude Limits",
+            lowTitle: "Low",
+            highTitle: "High",
+            lowText: $targetAltitudeLowLimitText,
+            highText: $targetAltitudeHighLimitText,
+            lowValue: targetAltitudeLowLimitBinding,
+            highValue: targetAltitudeHighLimitBinding
+        )
+    }
+
+    private var targetSortOptionsControl: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Target Sky Limits")
+            Text("Sort Targets")
                 .font(compactSelectorLabelFont)
                 .foregroundStyle(labelColor.opacity(0.92))
 
-            ViewThatFits(in: .horizontal) {
-                HStack(alignment: .top, spacing: 12) {
-                    targetLimitGroup(
-                        title: "Azimuth",
-                        lowTitle: "Low",
-                        highTitle: "High",
-                        lowText: $targetAzimuthLowLimitText,
-                        highText: $targetAzimuthHighLimitText,
-                        lowValue: targetAzimuthLowLimitBinding,
-                        highValue: targetAzimuthHighLimitBinding
-                    )
-
-                    targetLimitGroup(
-                        title: "Altitude",
-                        lowTitle: "Low",
-                        highTitle: "High",
-                        lowText: $targetAltitudeLowLimitText,
-                        highText: $targetAltitudeHighLimitText,
-                        lowValue: targetAltitudeLowLimitBinding,
-                        highValue: targetAltitudeHighLimitBinding
-                    )
-                }
-
-                VStack(alignment: .leading, spacing: 8) {
-                    targetLimitGroup(
-                        title: "Azimuth",
-                        lowTitle: "Low",
-                        highTitle: "High",
-                        lowText: $targetAzimuthLowLimitText,
-                        highText: $targetAzimuthHighLimitText,
-                        lowValue: targetAzimuthLowLimitBinding,
-                        highValue: targetAzimuthHighLimitBinding
-                    )
-
-                    targetLimitGroup(
-                        title: "Altitude",
-                        lowTitle: "Low",
-                        highTitle: "High",
-                        lowText: $targetAltitudeLowLimitText,
-                        highText: $targetAltitudeHighLimitText,
-                        lowValue: targetAltitudeLowLimitBinding,
-                        highValue: targetAltitudeHighLimitBinding
-                    )
+            LazyVGrid(
+                columns: [
+                    GridItem(.adaptive(minimum: 132), spacing: 10)
+                ],
+                alignment: .leading,
+                spacing: 6
+            ) {
+                ForEach(SingleNightTargetSortMode.allCases) { option in
+                    Toggle(option.label, isOn: targetSortBinding(for: option))
+                        .toggleStyle(.checkbox)
+                        .font(compactBodyFont)
+                        .foregroundStyle(.white.opacity(0.92))
                 }
             }
-
-            Text("Targets must enter these azimuth and altitude limits during the sun-below-horizon window. Azimuth can wrap across north, such as 300° to 40°.")
-                .font(compactBodyFont)
-                .foregroundStyle(.white.opacity(0.82))
-                .fixedSize(horizontal: false, vertical: true)
         }
-        .padding(8)
+        .padding(10)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(singleNightCardBackground(cornerRadius: 18, fill: .ultraThinMaterial))
     }
@@ -933,17 +1062,18 @@ struct SingleNightObservationWorkspaceView: View {
         lowValue: Binding<Double>,
         highValue: Binding<Double>
     ) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .center, spacing: 6) {
             Text(title)
-                .font(compactCaptionFont)
-                .foregroundStyle(.white.opacity(0.82))
+                .font(compactSelectorLabelFont)
+                .foregroundStyle(labelColor.opacity(0.92))
+                .multilineTextAlignment(.center)
 
             HStack(alignment: .top, spacing: 8) {
                 targetDegreeLimitField(title: lowTitle, text: lowText, value: lowValue)
                 targetDegreeLimitField(title: highTitle, text: highText, value: highValue)
             }
         }
-        .frame(minWidth: 228, alignment: .leading)
+        .frame(minWidth: 190, maxWidth: .infinity, alignment: .center)
     }
 
     private func targetDegreeLimitField(
@@ -951,13 +1081,14 @@ struct SingleNightObservationWorkspaceView: View {
         text: Binding<String>,
         value: Binding<Double>
     ) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .center, spacing: 4) {
             Text(title)
                 .font(compactCaptionFont)
                 .foregroundStyle(.white.opacity(0.72))
+                .multilineTextAlignment(.center)
 
             HStack(spacing: 6) {
-                TextField("0", text: text)
+                TextField("", text: text)
                     .textFieldStyle(.roundedBorder)
                     .foregroundStyle(observationTimeTextColor)
                     .frame(width: 58)
@@ -976,8 +1107,7 @@ struct SingleNightObservationWorkspaceView: View {
     private var targetSelectionCard: some View {
         VStack(alignment: .leading, spacing: 8) {
             cardHeading(
-                title: "Targets",
-                subtitle: "Choose one target by identifier or by name from the combined target database. The dropdown lists are limited to targets that match the filters and sky limits while the sun is below the horizon."
+                title: "Targets"
             )
 
             if combinedTargets.isEmpty {
@@ -987,92 +1117,160 @@ struct SingleNightObservationWorkspaceView: View {
                     .fixedSize(horizontal: false, vertical: true)
             } else {
                 targetSelectionHeaderControls
-
-                if let selectedTarget {
-                    VStack(alignment: .leading, spacing: 8) {
-                        HStack(alignment: .top, spacing: 10) {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(selectedTarget.name)
-                                    .font(compactStrongFont)
-                                    .foregroundStyle(.white.opacity(0.96))
-                                    .fixedSize(horizontal: false, vertical: true)
-
-                                Text("\(selectedTarget.identifier) • \(selectedTarget.typeName) • \(selectedTarget.constellation) • \(selectedTarget.sourceLabel)")
-                                    .font(compactBodyFont)
-                                    .foregroundStyle(.white.opacity(0.84))
-                                    .fixedSize(horizontal: false, vertical: true)
-                            }
-
-                            Spacer(minLength: 0)
-
-                            Button {
-                                addSelectedTargetToCurrentList()
-                            } label: {
-                                Image(systemName: isSelectedTargetAdded ? "plus.circle.fill" : "plus.circle")
-                                    .font(.system(size: 22, weight: .semibold))
-                                    .foregroundStyle(isSelectedTargetAdded ? Color.green.opacity(0.95) : Color.white.opacity(0.92))
-                            }
-                            .buttonStyle(.plain)
-                            .accessibilityLabel(isSelectedTargetAdded ? "Target already added" : "Add target to current list")
-                            .disabled(isSelectedTargetAdded)
-                        }
-
-                        LazyVGrid(
-                            columns: [
-                                GridItem(.adaptive(minimum: 165), spacing: 8)
-                            ],
-                            alignment: .center,
-                            spacing: 8
-                        ) {
-                            targetMetricBlock(
-                                title: "RA / Dec at Selected Date",
-                                value: selectedObservationCoordinates.map {
-                                    "\($0.rightAscensionDisplay) • \($0.declinationDisplay)"
-                                } ?? "Select a target and observation date."
-                            )
-
-                            if let selectedObservationSkyPosition {
-                                targetMetricBlock(
-                                    title: "Azimuth at Selected Time",
-                                    value: observationInfoSummary(
-                                        skyPosition: selectedObservationSkyPosition
-                                    )
-                                )
-
-                                targetMetricBlock(
-                                    title: "Altitude at Selected Time",
-                                    value: "\(formattedWholeAngle(selectedObservationSkyPosition.altitudeDegrees))° from \(selectedLocation?.name ?? "selected location")"
-                                )
-                            } else {
-                                targetMetricBlock(
-                                    title: "Selected-Time Sky Position",
-                                    value: "Choose a saved location to calculate azimuth and altitude for the selected date/time."
-                                )
-                            }
-
-                            targetMetricBlock(
-                                title: "Target Notes at Selected Date",
-                                value: "\(selectedTarget.magnitudeSummary) • Source \(selectedTarget.sourceLabel)"
-                            )
-                        }
-                    }
-                    .padding(8)
                     .frame(maxWidth: .infinity, alignment: .center)
-                    .background(singleNightCardBackground(cornerRadius: 24, fill: .ultraThinMaterial))
-                }
+
+                targetFeedList
             }
         }
         .padding(10)
-        .frame(maxWidth: 760, alignment: .leading)
+        .frame(maxWidth: contentCardMaxWidth, alignment: .topLeading)
         .background(singleNightCardBackground())
     }
 
+    private var targetFeedList: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(alignment: .center, spacing: 8) {
+                Text("Target Feed")
+                    .font(compactSelectorLabelFont)
+                    .foregroundStyle(labelColor.opacity(0.92))
+
+                Spacer(minLength: 0)
+
+                Text("\(combinedTargets.count) matches")
+                    .font(compactCaptionFont)
+                    .foregroundStyle(.white.opacity(0.72))
+            }
+
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: 7) {
+                    ForEach(sortedTargets) { target in
+                        targetFeedRow(target)
+                    }
+                }
+                .padding(.vertical, 2)
+                .scrollTargetLayout()
+            }
+            .scrollIndicators(.visible)
+            .scrollTargetBehavior(.viewAligned)
+            .frame(height: targetFeedVisibleHeight, alignment: .topLeading)
+        }
+        .padding(8)
+        .frame(maxWidth: .infinity, alignment: .topLeading)
+        .background(singleNightCardBackground(cornerRadius: 22, fill: .ultraThinMaterial))
+    }
+
+    private func targetFeedRow(_ target: SingleNightTargetChoice) -> some View {
+        let isSelected = selectedTargetID == target.id
+
+        return HStack(alignment: .center, spacing: 8) {
+            Toggle("", isOn: targetObservationListBinding(for: target))
+                .toggleStyle(.checkbox)
+                .labelsHidden()
+                .fixedSize()
+
+            HStack(alignment: .center, spacing: 12) {
+                targetFeedField(
+                    target.identifier,
+                    minimumWidth: 74,
+                    idealWidth: 88,
+                    maximumWidth: 96,
+                    font: compactStrongFont
+                )
+
+                targetFeedField(
+                    target.shortenedName,
+                    minimumWidth: 128,
+                    idealWidth: 230,
+                    maximumWidth: .infinity,
+                    font: compactStrongFont
+                )
+                    .layoutPriority(2)
+
+                targetFeedField(
+                    target.typeName,
+                    minimumWidth: 96,
+                    idealWidth: 132,
+                    maximumWidth: 148,
+                    font: compactBodyFont
+                )
+
+                targetFeedField(
+                    target.constellation,
+                    minimumWidth: 42,
+                    idealWidth: 54,
+                    maximumWidth: 62,
+                    font: compactBodyFont
+                )
+
+                if let visibilityRowText = targetVisibilitySummary(for: target) {
+                    targetFeedField(
+                        visibilityRowText,
+                        minimumWidth: 132,
+                        idealWidth: 208,
+                        maximumWidth: 240,
+                        font: compactBodyFont
+                    )
+                        .layoutPriority(1)
+                }
+
+                Spacer(minLength: 0)
+
+                targetMagnitudeBadge(for: target)
+                    .fixedSize(horizontal: true, vertical: false)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 9)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(singleNightCardBackground(cornerRadius: 14, fill: .thinMaterial))
+        .overlay(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .stroke(isSelected ? Color.accentColor.opacity(0.62) : Color.clear, lineWidth: 1.2)
+        )
+        .contentShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .onTapGesture {
+            selectedTargetID = target.id
+        }
+    }
+
+    private func targetMagnitudeBadge(for target: SingleNightTargetChoice) -> some View {
+        Text(target.magnitude.map { "Mag \($0.formatted(.number.precision(.fractionLength(1))))" } ?? "Mag --")
+            .font(compactStrongFont)
+            .foregroundStyle(labelColor.opacity(0.94))
+            .lineLimit(1)
+            .padding(.horizontal, 9)
+            .padding(.vertical, 6)
+            .background(singleNightCardBackground(cornerRadius: 12, fill: .ultraThinMaterial))
+    }
+
+    private func targetFeedField(
+        _ text: String,
+        minimumWidth: CGFloat,
+        idealWidth: CGFloat,
+        maximumWidth: CGFloat,
+        font: Font
+    ) -> some View {
+        Text(text)
+            .font(font)
+            .foregroundStyle(.white.opacity(0.90))
+            .lineLimit(1)
+            .minimumScaleFactor(0.72)
+            .truncationMode(.tail)
+            .frame(
+                minWidth: minimumWidth,
+                idealWidth: idealWidth,
+                maxWidth: maximumWidth,
+                alignment: .leading
+            )
+    }
+
     private var targetIdentifierMenu: some View {
-        VStack(alignment: .trailing, spacing: 6) {
+        VStack(alignment: .leading, spacing: 6) {
             Text("Target Identifier")
                 .font(compactSelectorLabelFont)
                 .foregroundStyle(labelColor.opacity(0.92))
-                .frame(maxWidth: .infinity, alignment: .trailing)
+                .frame(maxWidth: .infinity, alignment: .leading)
 
             Menu {
                 ForEach(identifierSortedTargets) { target in
@@ -1087,22 +1285,22 @@ struct SingleNightObservationWorkspaceView: View {
                 selectionMenuLabel(
                     title: selectedTarget?.identifier,
                     placeholder: "Choose a target identifier",
-                    expands: false,
-                    maxWidth: 138,
+                    expands: true,
                     compact: true
                 )
             }
             .buttonStyle(.plain)
         }
-        .frame(width: targetIdentifierMenuWidth, alignment: .trailing)
+        .frame(minWidth: 220, maxWidth: .infinity, alignment: .leading)
+        .layoutPriority(1)
     }
 
     private var targetNameMenu: some View {
-        VStack(alignment: .trailing, spacing: 6) {
+        VStack(alignment: .leading, spacing: 6) {
             Text("Target Name")
                 .font(compactSelectorLabelFont)
                 .foregroundStyle(labelColor.opacity(0.92))
-                .frame(maxWidth: .infinity, alignment: .trailing)
+                .frame(maxWidth: .infinity, alignment: .leading)
 
             Menu {
                 ForEach(nameSortedTargets) { target in
@@ -1117,66 +1315,46 @@ struct SingleNightObservationWorkspaceView: View {
                 selectionMenuLabel(
                     title: selectedTarget?.name,
                     placeholder: "Choose a target name",
-                    expands: false,
-                    maxWidth: 200,
+                    expands: true,
                     compact: true
                 )
             }
             .buttonStyle(.plain)
         }
-        .frame(width: targetNameMenuWidth, alignment: .trailing)
+        .frame(minWidth: 280, maxWidth: .infinity, alignment: .leading)
+        .layoutPriority(2)
     }
 
     private var targetSelectionHeaderControls: some View {
         ViewThatFits(in: .horizontal) {
-            HStack(alignment: .top, spacing: 6) {
-                observationScheduleControls
-                    .frame(width: 328, alignment: .leading)
-
-                HStack(alignment: .top, spacing: 6) {
-                    targetIdentifierMenu
-                    targetNameMenu
-                }
-                .frame(maxWidth: .infinity, alignment: .trailing)
-            }
+            targetObjectMenus
+                .frame(maxWidth: .infinity, alignment: .leading)
 
             VStack(alignment: .leading, spacing: 8) {
-                observationScheduleControls
-
-                HStack(alignment: .top, spacing: 8) {
-                    targetIdentifierMenu
-                    targetNameMenu
-                }
-                .frame(maxWidth: .infinity, alignment: .trailing)
+                targetObjectMenus
             }
         }
     }
 
-    private var targetIdentifierMenuWidth: CGFloat {
-        menuWidth(
-            for: selectedTarget?.identifier ?? "Choose a target identifier",
-            minimum: 88,
-            maximum: 126
-        )
-    }
+    private var targetObjectMenus: some View {
+        ViewThatFits(in: .horizontal) {
+            HStack(alignment: .center, spacing: 10) {
+                targetIdentifierMenu
+                targetNameMenu
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
 
-    private var targetNameMenuWidth: CGFloat {
-        menuWidth(
-            for: selectedTarget?.name ?? "Choose a target name",
-            minimum: 120,
-            maximum: 170
-        )
+            VStack(alignment: .leading, spacing: 8) {
+                targetIdentifierMenu
+                targetNameMenu
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
     }
 
     private var observationScheduleControls: some View {
-        HStack(alignment: .center, spacing: 4) {
+        HStack(alignment: .center, spacing: 8) {
             observationDateEntry
-                .frame(width: 116, alignment: .leading)
-
-            observationTimeEntry
-                .frame(width: 86, alignment: .leading)
-
-            observationMeridiemMenu
 
             observationTimeZoneMenu
         }
@@ -1184,62 +1362,49 @@ struct SingleNightObservationWorkspaceView: View {
     }
 
     private var observationDateEntry: some View {
-        DatePicker(
-            "Observation Date",
-            selection: observationDateBinding,
-            displayedComponents: .date
-        )
-        .labelsHidden()
-        .datePickerStyle(.field)
-        .frame(width: 112)
+        VStack(alignment: .center, spacing: 6) {
+            Text("Observation Date")
+                .font(compactSelectorLabelFont)
+                .foregroundStyle(labelColor.opacity(0.92))
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: .infinity, alignment: .center)
+
+            DatePicker(
+                "Observation Date",
+                selection: observationDateBinding,
+                displayedComponents: .date
+            )
+            .labelsHidden()
+            .datePickerStyle(.field)
+            .frame(maxWidth: .infinity, alignment: .center)
+        }
+        .frame(minWidth: 170, maxWidth: .infinity, alignment: .center)
     }
 
     private var observationTimeEntry: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text("Observation Time")
+        VStack(alignment: .center, spacing: 6) {
+            Text("Start Time")
                 .font(compactSelectorLabelFont)
                 .foregroundStyle(observationTimeTextColor)
+                .multilineTextAlignment(.center)
 
             HStack(alignment: .center, spacing: 6) {
-                TextField("HH", text: $observationHourText)
+                TextField("HH:MM", text: $observationTimeText)
                     .textFieldStyle(.roundedBorder)
-                    .frame(width: 34)
+                    .frame(width: 78)
                     .multilineTextAlignment(.center)
                     .foregroundStyle(observationTimeTextColor)
                     .tint(observationTimeTextColor)
-                    .focused($focusedObservationTimeField, equals: .hour)
-                    .onSubmit {
-                        focusedObservationTimeField = .minute
-                    }
-
-                Text(":")
-                    .font(compactStrongFont)
-                    .foregroundStyle(observationTimeTextColor)
-
-                TextField("MM", text: $observationMinuteText)
-                    .textFieldStyle(.roundedBorder)
-                    .frame(width: 34)
-                    .multilineTextAlignment(.center)
-                    .foregroundStyle(observationTimeTextColor)
-                    .tint(observationTimeTextColor)
-                    .focused($focusedObservationTimeField, equals: .minute)
+                    .focused($focusedObservationTimeField, equals: .time)
                     .onSubmit {
                         applyObservationTimeEntry()
                     }
             }
         }
-        .onChange(of: observationHourText) { _, newValue in
-            let filtered = sanitizedTimeComponent(newValue)
+        .onChange(of: observationTimeText) { _, newValue in
+            let filtered = sanitizedObservationTimeInput(newValue)
             if filtered != newValue {
-                observationHourText = filtered
-                return
-            }
-            applyObservationTimeEntry(normalizeFields: false)
-        }
-        .onChange(of: observationMinuteText) { _, newValue in
-            let filtered = sanitizedTimeComponent(newValue)
-            if filtered != newValue {
-                observationMinuteText = filtered
+                observationTimeText = filtered
                 return
             }
             applyObservationTimeEntry(normalizeFields: false)
@@ -1252,10 +1417,11 @@ struct SingleNightObservationWorkspaceView: View {
     }
 
     private var observationMeridiemMenu: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .center, spacing: 6) {
             Text("AM/PM")
                 .font(compactSelectorLabelFont)
                 .foregroundStyle(observationTimeTextColor)
+                .multilineTextAlignment(.center)
 
             Menu {
                 ForEach(ObservationMeridiem.allCases) { meridiem in
@@ -1293,14 +1459,14 @@ struct SingleNightObservationWorkspaceView: View {
                 selectionMenuLabel(
                     title: timeZoneMenuLabel(for: observationTimeZoneIdentifier),
                     placeholder: "Choose a time zone",
-                    expands: false,
-                    maxWidth: 84,
+                    expands: true,
                     compact: true
                 )
             }
             .buttonStyle(.plain)
         }
-        .frame(width: 88, alignment: .leading)
+        .frame(minWidth: 180, maxWidth: .infinity, alignment: .leading)
+        .layoutPriority(1)
     }
 
     private var observationDateBinding: Binding<Date> {
@@ -1334,6 +1500,10 @@ struct SingleNightObservationWorkspaceView: View {
         return targetDatabaseFilteredTargets.filter { targetMatchesSelectedTypes($0) }
     }
 
+    private var sortedTargets: [SingleNightTargetChoice] {
+        combinedTargets.sorted(by: compareTargetsForSelectedSort)
+    }
+
     private var identifierSortedTargets: [SingleNightTargetChoice] {
         combinedTargets.sorted(by: compareTargetsByVisibilityThenIdentifier)
     }
@@ -1354,6 +1524,26 @@ struct SingleNightObservationWorkspaceView: View {
 
     private var selectedLocationName: String {
         selectedLocation?.name ?? "Choose a saved location"
+    }
+
+    private var weatherSourceRequestKey: String {
+        guard let site = selectedLocation else { return "no-site" }
+        let cachedCountry = [site.countryCode ?? "", site.countryName ?? ""].joined(separator: "-")
+        return "\(site.id.uuidString)-\(site.latitude)-\(site.longitude)-\(cachedCountry)"
+    }
+
+    private var observationWeatherRequestKey: String {
+        guard
+            let site = selectedLocation,
+            let nightStart = solarEvents.start,
+            let nightEnd = solarEvents.end
+        else {
+            return "no-weather-window"
+        }
+
+        let roundedStart = Int(nightStart.timeIntervalSince1970 / 60)
+        let roundedEnd = Int(nightEnd.timeIntervalSince1970 / 60)
+        return "\(site.id.uuidString)-\(site.latitude)-\(site.longitude)-\(roundedStart)-\(roundedEnd)"
     }
 
     private var sortedLocations: [ObservingSite] {
@@ -1394,12 +1584,13 @@ struct SingleNightObservationWorkspaceView: View {
         }
 
         let calculatedEvents = SolarHorizonService.sunBelowHorizonEvents(for: selectedLocation, on: referenceDate)
-        guard let telescopeCaptureStartOverrideDate else {
+        guard let calculatedStart = calculatedEvents.start else {
             return calculatedEvents
         }
 
+        let imagingStartDate = normalizedObservationDate(telescopeCaptureStartOverrideDate ?? referenceDate)
         return SunBelowHorizonEvents(
-            start: normalizedObservationDate(telescopeCaptureStartOverrideDate),
+            start: max(calculatedStart, imagingStartDate),
             end: calculatedEvents.end
         )
     }
@@ -1458,7 +1649,7 @@ struct SingleNightObservationWorkspaceView: View {
             return
         }
 
-        selectedTargetID = identifierSortedTargets.first?.id
+        selectedTargetID = sortedTargets.first?.id
     }
 
     private func syncAddedTargets() {
@@ -1478,13 +1669,32 @@ struct SingleNightObservationWorkspaceView: View {
         selectedTargetTypeNames = selectedTargetTypeNames.intersection(availableSet)
     }
 
+    private func scheduleVisibleTargetRecompute() {
+        visibilityRecomputeTask?.cancel()
+        visibilityRecomputeTask = Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 250_000_000)
+            guard !Task.isCancelled else { return }
+            recomputeVisibleTargets()
+            persistSingleNightDraft()
+        }
+    }
+
     private func recomputeVisibleTargets() {
+        visibilityRecomputeTask?.cancel()
+        visibilityRecomputeTask = nil
         guard let selectedLocation,
               let nightStart = solarEvents.start,
-              let nightEnd = solarEvents.end,
-              nightEnd > nightStart else {
+              let nightEnd = solarEvents.end else {
             visibleTargetMetadata = [:]
             usesVisibilityFilter = false
+            syncSelectedTarget()
+            syncAddedTargets()
+            return
+        }
+
+        guard nightEnd > nightStart else {
+            visibleTargetMetadata = [:]
+            usesVisibilityFilter = true
             syncSelectedTarget()
             syncAddedTargets()
             return
@@ -1516,6 +1726,10 @@ struct SingleNightObservationWorkspaceView: View {
     ) -> SingleNightTargetVisibility? {
         let stepInterval: TimeInterval = 10 * 60
         var sampleDate = nightStart
+        var firstVisibleDate: Date?
+        var firstVisibleSkyPosition: LocalSkyPosition?
+        var zenithDate: Date?
+        var zenithAltitude = -Double.infinity
 
         while sampleDate <= nightEnd {
             let coordinates = target.coordinates(at: sampleDate)
@@ -1527,28 +1741,64 @@ struct SingleNightObservationWorkspaceView: View {
             )
 
             if targetPassesSkyLimits(skyPosition) {
-                return SingleNightTargetVisibility(
-                    visibleFrom: sampleDate,
-                    skyPosition: skyPosition
-                )
+                if firstVisibleDate == nil {
+                    firstVisibleDate = sampleDate
+                    firstVisibleSkyPosition = skyPosition
+                }
+
+                if skyPosition.altitudeDegrees > zenithAltitude {
+                    zenithAltitude = skyPosition.altitudeDegrees
+                    zenithDate = sampleDate
+                }
             }
 
             sampleDate = sampleDate.addingTimeInterval(stepInterval)
         }
 
-        return nil
+        guard
+            let firstVisibleDate,
+            let firstVisibleSkyPosition,
+            let zenithDate
+        else {
+            return nil
+        }
+
+        return SingleNightTargetVisibility(
+            visibleFrom: firstVisibleDate,
+            zenithDate: zenithDate,
+            zenithAltitudeDegrees: zenithAltitude,
+            skyPosition: firstVisibleSkyPosition
+        )
     }
 
     private func addSelectedTargetToCurrentList() {
         guard
             let currentTargetID = selectedTargetID,
-            !addedTargetIDs.contains(currentTargetID),
             let target = targetChoice(for: currentTargetID)
         else { return }
 
-        retainTargetLocally(target)
-        addedTargetIDs.append(currentTargetID)
+        addTargetToCurrentList(target)
         selectedTargetID = nextAvailableTargetID(after: currentTargetID)
+    }
+
+    private func targetObservationListBinding(for target: SingleNightTargetChoice) -> Binding<Bool> {
+        Binding(
+            get: { addedTargetIDs.contains(target.id) },
+            set: { isAdded in
+                selectedTargetID = target.id
+                if isAdded {
+                    addTargetToCurrentList(target)
+                } else {
+                    removeTargetFromCurrentList(target.id)
+                }
+            }
+        )
+    }
+
+    private func addTargetToCurrentList(_ target: SingleNightTargetChoice) {
+        guard !addedTargetIDs.contains(target.id) else { return }
+        retainTargetLocally(target)
+        addedTargetIDs.append(target.id)
     }
 
     private func removeTargetFromCurrentList(_ targetID: String) {
@@ -1614,6 +1864,7 @@ struct SingleNightObservationWorkspaceView: View {
         targetAltitudeLowLimitText = draft.targetAltitudeLowLimitText
         targetAltitudeHighLimitText = draft.targetAltitudeHighLimitText
         selectedTargetTypeNames = draft.selectedTargetTypeNames
+        targetSortMode = SingleNightTargetSortMode(rawValue: draft.targetSortModeRawValue) ?? .firstViewable
         hasInitializedTargetTypeSelection = draft.hasInitializedTargetTypeSelection
         didManuallyAdjustTargetTypes = draft.didManuallyAdjustTargetTypes
     }
@@ -1632,6 +1883,7 @@ struct SingleNightObservationWorkspaceView: View {
             targetAltitudeLowLimitText: targetAltitudeLowLimitText,
             targetAltitudeHighLimitText: targetAltitudeHighLimitText,
             selectedTargetTypeNames: selectedTargetTypeNames,
+            targetSortModeRawValue: targetSortMode.rawValue,
             hasInitializedTargetTypeSelection: hasInitializedTargetTypeSelection,
             didManuallyAdjustTargetTypes: didManuallyAdjustTargetTypes
         )
@@ -1669,24 +1921,113 @@ struct SingleNightObservationWorkspaceView: View {
         observationDateTime = Date()
         observationTimeZoneIdentifier = TimeZone.current.identifier
         telescopeCaptureStartOverrideDate = nil
-        observationHourText = ""
-        observationMinuteText = ""
+        observationTimeText = ""
         dsoLimitingMagnitudeText = formattedMagnitudeLimit(Self.defaultDSOLimitingMagnitude)
-        targetAzimuthLowLimitText = formattedDegreeLimit(Self.defaultTargetAzimuthLowLimit)
-        targetAzimuthHighLimitText = formattedDegreeLimit(Self.defaultTargetAzimuthHighLimit)
-        targetAltitudeLowLimitText = formattedDegreeLimit(Self.defaultTargetAltitudeLowLimit)
-        targetAltitudeHighLimitText = formattedDegreeLimit(Self.defaultTargetAltitudeHighLimit)
+        targetAzimuthLowLimitText = ""
+        targetAzimuthHighLimitText = ""
+        targetAltitudeLowLimitText = ""
+        targetAltitudeHighLimitText = ""
         selectedTargetTypeNames.removeAll()
+        targetSortMode = .firstViewable
         visibleTargetMetadata = [:]
         usesVisibilityFilter = false
         hasInitializedTargetTypeSelection = false
         didManuallyAdjustTargetTypes = false
         selectedLocationID = LocationPreferenceStore.reconcileDefaultSiteID(using: sites)
         syncObservationTimeZoneFromLocation()
-        syncObservationTimeFieldsFromDate()
         syncSelectedTargetTypes()
         recomputeVisibleTargets()
         selectedSection = .home
+    }
+
+    private var weatherSourceSubtitle: String {
+        if let observationCountry {
+            return "\(observationCountry.countryName) public source • \(weatherSource.website)"
+        }
+
+        if isResolvingObservationCountry {
+            return "Resolving country from the observation location."
+        }
+
+        if !weatherSourceMessage.isEmpty {
+            return "Global fallback • \(weatherSource.website)"
+        }
+
+        return "Adapts when a location is selected."
+    }
+
+    @MainActor
+    private func refreshWeatherSource() async {
+        guard let site = selectedLocation else {
+            observationCountry = nil
+            weatherSource = WeatherSourcePolicy.source(for: nil)
+            weatherSourceMessage = ""
+            isResolvingObservationCountry = false
+            return
+        }
+
+        if let countryCode = normalizedText(site.countryCode),
+           let countryName = normalizedText(site.countryName) {
+            observationCountry = ObservationCountryDetails(countryCode: countryCode, countryName: countryName)
+            weatherSource = WeatherSourcePolicy.source(for: countryCode)
+            weatherSourceMessage = ""
+            isResolvingObservationCountry = false
+            return
+        }
+
+        isResolvingObservationCountry = true
+        weatherSourceMessage = ""
+
+        do {
+            let request = ObservationCountryRequest(latitude: site.latitude, longitude: site.longitude)
+            let resolvedCountry = try await ObservationCountryService.shared.resolveCountry(for: request)
+            observationCountry = resolvedCountry
+            weatherSource = WeatherSourcePolicy.source(for: resolvedCountry.countryCode)
+            site.countryCode = resolvedCountry.countryCode
+            site.countryName = resolvedCountry.countryName
+            try? modelContext.save()
+        } catch {
+            observationCountry = nil
+            weatherSource = WeatherSourcePolicy.source(for: nil)
+            weatherSourceMessage = AppIssueFormatter.remoteServiceMessage(service: "Observation country lookup", error: error)
+        }
+
+        isResolvingObservationCountry = false
+    }
+
+    @MainActor
+    private func refreshObservationWeather() async {
+        guard
+            let site = selectedLocation,
+            let nightStart = solarEvents.start,
+            let nightEnd = solarEvents.end
+        else {
+            observationWeatherSnapshot = nil
+            observationWeatherMessage = "Weather appears after a location and observation window are available."
+            isLoadingObservationWeather = false
+            return
+        }
+
+        isLoadingObservationWeather = true
+        observationWeatherMessage = ""
+
+        do {
+            observationWeatherSnapshot = try await ObservationWeatherService.fetchSnapshot(
+                for: ObservationWeatherRequest(
+                    siteName: site.name,
+                    latitude: site.latitude,
+                    longitude: site.longitude,
+                    timeZoneIdentifier: site.timeZoneIdentifier,
+                    sunsetDate: nightStart,
+                    nightEndDate: nightEnd
+                )
+            )
+        } catch {
+            observationWeatherSnapshot = nil
+            observationWeatherMessage = AppIssueFormatter.remoteServiceMessage(service: "Observation weather", error: error)
+        }
+
+        isLoadingObservationWeather = false
     }
 
     private func refreshTargetDatabase() async {
@@ -1716,7 +2057,7 @@ struct SingleNightObservationWorkspaceView: View {
     }
 
     private func nextAvailableTargetID(after currentID: String?) -> String? {
-        let candidates = identifierSortedTargets.filter { !addedTargetIDs.contains($0.id) }
+        let candidates = sortedTargets.filter { !addedTargetIDs.contains($0.id) }
         guard !candidates.isEmpty else { return currentID }
         if let currentID,
            let currentIndex = candidates.firstIndex(where: { $0.id == currentID }),
@@ -1810,16 +2151,49 @@ struct SingleNightObservationWorkspaceView: View {
         return calendar.date(from: components) ?? date
     }
 
-    private func syncObservationTimeFieldsFromDate() {
-        let components = Calendar.current.dateComponents([.hour, .minute], from: observationDateTime)
+    private func syncObservationTimeFieldsFromDate(force: Bool = false) {
+        guard force || !observationTimeText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            return
+        }
+
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = observationTimeZone
+        let components = calendar.dateComponents([.hour, .minute], from: observationDateTime)
         let hour24 = components.hour ?? 0
-        observationHourText = String(format: "%02d", civilianHour(from24Hour: hour24))
-        observationMinuteText = String(format: "%02d", components.minute ?? 0)
+        observationTimeText = String(format: "%02d:%02d", civilianHour(from24Hour: hour24), components.minute ?? 0)
         observationMeridiem = hour24 < 12 ? .am : .pm
     }
 
-    private func sanitizedTimeComponent(_ value: String) -> String {
-        String(value.filter(\.isNumber).prefix(2))
+    private func sanitizedObservationTimeInput(_ value: String) -> String {
+        let allowed = value.filter { $0.isNumber || $0 == ":" }
+        guard allowed.contains(":") else {
+            let digits = String(allowed.filter(\.isNumber).prefix(4))
+            guard digits.count > 2 else { return digits }
+
+            let splitIndex = digits.count == 3 ? digits.index(after: digits.startIndex) : digits.index(digits.startIndex, offsetBy: 2)
+            return "\(digits[..<splitIndex]):\(digits[splitIndex...])"
+        }
+
+        let parts = allowed.split(separator: ":", maxSplits: 1, omittingEmptySubsequences: false)
+        let hour = String((parts.first ?? "").filter(\.isNumber).prefix(2))
+        let minute = parts.count > 1 ? String(parts[1].filter(\.isNumber).prefix(2)) : ""
+        return "\(hour):\(minute)"
+    }
+
+    private func parsedObservationTimeEntry() -> (hour: Int, minute: Int)? {
+        let parts = observationTimeText
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .split(separator: ":", maxSplits: 1, omittingEmptySubsequences: false)
+
+        guard parts.count == 2,
+              let hour = Int(parts[0]),
+              let minute = Int(parts[1]),
+              (1 ... 12).contains(hour),
+              (0 ... 59).contains(minute) else {
+            return nil
+        }
+
+        return (hour, minute)
     }
 
     private func civilianHour(from24Hour hour: Int) -> Int {
@@ -1838,19 +2212,15 @@ struct SingleNightObservationWorkspaceView: View {
     }
 
     private func applyObservationTimeEntry(normalizeFields: Bool = true) {
-        guard
-            let hour = Int(observationHourText),
-            let minute = Int(observationMinuteText),
-            (1 ... 12).contains(hour),
-            (0 ... 59).contains(minute)
-        else {
+        guard let parsedTime = parsedObservationTimeEntry() else {
             return
         }
 
+        let hour = parsedTime.hour
+        let minute = parsedTime.minute
         let hour24 = hour24(fromCivilianHour: hour, meridiem: observationMeridiem)
         if normalizeFields {
-            observationHourText = String(format: "%02d", hour)
-            observationMinuteText = String(format: "%02d", minute)
+            observationTimeText = String(format: "%02d:%02d", hour, minute)
         }
 
         var calendar = Calendar(identifier: .gregorian)
@@ -1862,9 +2232,11 @@ struct SingleNightObservationWorkspaceView: View {
 
         if let updatedDate = calendar.date(from: components),
            updatedDate != observationDateTime {
+            telescopeCaptureStartOverrideDate = updatedDate
             observationDateTime = updatedDate
         } else {
-            recomputeVisibleTargets()
+            telescopeCaptureStartOverrideDate = observationDateTime
+            scheduleVisibleTargetRecompute()
         }
     }
 
@@ -1887,20 +2259,22 @@ struct SingleNightObservationWorkspaceView: View {
            updatedDate != observationDateTime {
             observationDateTime = updatedDate
         } else {
-            recomputeVisibleTargets()
+            scheduleVisibleTargetRecompute()
         }
     }
 
-    private func cardHeading(title: String, subtitle: String) -> some View {
+    private func cardHeading(title: String, subtitle: String? = nil) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(title)
                 .font(compactStrongFont)
                 .foregroundStyle(labelColor.opacity(0.92))
 
-            Text(subtitle)
-                .font(compactBodyFont)
-                .foregroundStyle(.white.opacity(0.86))
-                .fixedSize(horizontal: false, vertical: true)
+            if let subtitle {
+                Text(subtitle)
+                    .font(compactBodyFont)
+                    .foregroundStyle(.white.opacity(0.86))
+                    .fixedSize(horizontal: false, vertical: true)
+            }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -1952,56 +2326,112 @@ struct SingleNightObservationWorkspaceView: View {
                         .stroke(.white.opacity(0.16), lineWidth: 1)
                 )
         )
+        .contentShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
 
     private func compareTargetsByVisibilityThenIdentifier(_ lhs: SingleNightTargetChoice, _ rhs: SingleNightTargetChoice) -> Bool {
         let lhsVisibleFrom = visibleTargetMetadata[lhs.id]?.visibleFrom
         let rhsVisibleFrom = visibleTargetMetadata[rhs.id]?.visibleFrom
 
-        switch (lhsVisibleFrom, rhsVisibleFrom) {
-        case let (.some(lhsDate), .some(rhsDate)) where lhsDate != rhsDate:
-            return lhsDate < rhsDate
-        default:
-            let identifierComparison = lhs.identifier.localizedStandardCompare(rhs.identifier)
-            if identifierComparison == .orderedSame {
-                return lhs.name.localizedStandardCompare(rhs.name) == .orderedAscending
-            }
-            return identifierComparison == .orderedAscending
+        if let dateOrder = compareOptionalDates(lhsVisibleFrom, rhsVisibleFrom, ascending: true) {
+            return dateOrder
         }
+
+        return compareTargetsByIdentifier(lhs, rhs)
     }
 
     private func compareTargetsByVisibilityThenName(_ lhs: SingleNightTargetChoice, _ rhs: SingleNightTargetChoice) -> Bool {
         let lhsVisibleFrom = visibleTargetMetadata[lhs.id]?.visibleFrom
         let rhsVisibleFrom = visibleTargetMetadata[rhs.id]?.visibleFrom
 
-        switch (lhsVisibleFrom, rhsVisibleFrom) {
-        case let (.some(lhsDate), .some(rhsDate)) where lhsDate != rhsDate:
-            return lhsDate < rhsDate
-        default:
-            let nameComparison = lhs.name.localizedStandardCompare(rhs.name)
-            if nameComparison == .orderedSame {
-                return lhs.identifier.localizedStandardCompare(rhs.identifier) == .orderedAscending
+        if let dateOrder = compareOptionalDates(lhsVisibleFrom, rhsVisibleFrom, ascending: true) {
+            return dateOrder
+        }
+
+        let nameComparison = lhs.name.localizedStandardCompare(rhs.name)
+        if nameComparison == .orderedSame {
+            return compareTargetsByIdentifier(lhs, rhs)
+        }
+        return nameComparison == .orderedAscending
+    }
+
+    private func compareTargetsForSelectedSort(_ lhs: SingleNightTargetChoice, _ rhs: SingleNightTargetChoice) -> Bool {
+        let lhsVisibility = visibleTargetMetadata[lhs.id]
+        let rhsVisibility = visibleTargetMetadata[rhs.id]
+
+        switch targetSortMode {
+        case .firstViewable:
+            if let dateOrder = compareOptionalDates(lhsVisibility?.visibleFrom, rhsVisibility?.visibleFrom, ascending: true) {
+                return dateOrder
             }
-            return nameComparison == .orderedAscending
+        case .zenith:
+            if let dateOrder = compareOptionalDates(lhsVisibility?.zenithDate, rhsVisibility?.zenithDate, ascending: true) {
+                return dateOrder
+            }
+        case .targetIdentifier:
+            return compareTargetsByIdentifier(lhs, rhs)
+        case .targetName:
+            return compareTargetsByName(lhs, rhs)
+        }
+
+        return compareTargetsByIdentifier(lhs, rhs)
+    }
+
+    private func compareOptionalDates(_ lhs: Date?, _ rhs: Date?, ascending: Bool) -> Bool? {
+        switch (lhs, rhs) {
+        case let (.some(lhsDate), .some(rhsDate)) where lhsDate != rhsDate:
+            return ascending ? lhsDate < rhsDate : lhsDate > rhsDate
+        case (.some, nil):
+            return true
+        case (nil, .some):
+            return false
+        default:
+            return nil
         }
     }
 
+    private func compareTargetsByIdentifier(_ lhs: SingleNightTargetChoice, _ rhs: SingleNightTargetChoice) -> Bool {
+        let identifierComparison = lhs.identifier.localizedStandardCompare(rhs.identifier)
+        if identifierComparison == .orderedSame {
+            return lhs.name.localizedStandardCompare(rhs.name) == .orderedAscending
+        }
+        return identifierComparison == .orderedAscending
+    }
+
+    private func compareTargetsByName(_ lhs: SingleNightTargetChoice, _ rhs: SingleNightTargetChoice) -> Bool {
+        let nameComparison = lhs.name.localizedStandardCompare(rhs.name)
+        if nameComparison == .orderedSame {
+            return compareTargetsByIdentifier(lhs, rhs)
+        }
+        return nameComparison == .orderedAscending
+    }
+
+    private func targetVisibilitySummary(for target: SingleNightTargetChoice) -> String? {
+        guard let visibility = visibleTargetMetadata[target.id] else { return nil }
+
+        let firstVisibleText = formattedSolarEvent(visibility.visibleFrom)
+        let zenithText = formattedSolarEvent(visibility.zenithDate)
+        let altitudeText = formattedWholeAngle(visibility.zenithAltitudeDegrees)
+
+        return "First \(firstVisibleText) • Zenith \(zenithText) @ \(altitudeText)°"
+    }
+
     private func targetMetricBlock(title: String, value: String) -> some View {
-        VStack(alignment: .center, spacing: 4) {
+        VStack(alignment: .center, spacing: 7) {
             Text(title.uppercased())
-                .font(compactCaptionFont)
+                .font(.system(size: 12, weight: .semibold, design: .rounded))
                 .foregroundStyle(labelColor.opacity(0.82))
                 .multilineTextAlignment(.center)
 
             Text(value)
-                .font(compactBodyFont)
+                .font(.system(size: 14, weight: .regular, design: .rounded))
                 .foregroundStyle(.white.opacity(0.92))
                 .fixedSize(horizontal: false, vertical: true)
                 .multilineTextAlignment(.center)
         }
-        .padding(.horizontal, 8)
-        .padding(.vertical, 6)
-        .frame(maxWidth: .infinity, alignment: .center)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .frame(maxWidth: .infinity, minHeight: 92, alignment: .center)
         .background(singleNightCardBackground(cornerRadius: 18, fill: .thinMaterial))
     }
 
@@ -2056,6 +2486,112 @@ struct SingleNightObservationWorkspaceView: View {
 
     private var currentSingleNightMoonPhase: MoonPhaseSnapshot {
         MoonPhaseService.approximateSnapshot(for: referenceDate)
+    }
+
+    private var heroObservationInfoBlocks: some View {
+        ViewThatFits(in: .horizontal) {
+            HStack(alignment: .top, spacing: 8) {
+                heroMetricFrame(viewingInfoMetricBlock)
+                heroMetricFrame(observationWeatherMetricBlock)
+                heroMetricFrame(weatherSourceMetricBlock)
+            }
+
+            VStack(alignment: .center, spacing: 8) {
+                heroMetricFrame(viewingInfoMetricBlock)
+                heroMetricFrame(observationWeatherMetricBlock)
+                heroMetricFrame(weatherSourceMetricBlock)
+            }
+        }
+    }
+
+    private func heroMetricFrame<Content: View>(_ content: Content) -> some View {
+        content
+            .frame(width: heroMetricWidth, height: heroMetricHeight, alignment: .center)
+    }
+
+    private var observationWeatherMetricBlock: some View {
+        VStack(alignment: .center, spacing: 4) {
+            Text("WEATHER AT SUNSET")
+                .font(compactCaptionFont)
+                .foregroundStyle(labelColor.opacity(0.82))
+                .multilineTextAlignment(.center)
+
+            if isLoadingObservationWeather {
+                ProgressView()
+                    .controlSize(.small)
+            } else if let observationWeatherSnapshot {
+                HStack(spacing: 5) {
+                    Image(systemName: cloudSymbolName(for: observationWeatherSnapshot.cloudCoverPercent))
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(.black.opacity(0.72))
+
+                    Text("Cloud \(observationWeatherSnapshot.cloudCoverPercent)%")
+                        .font(compactBodyFont)
+                        .foregroundStyle(.black.opacity(0.88))
+                        .lineLimit(1)
+                }
+                .fixedSize(horizontal: false, vertical: true)
+
+                Text(
+                    "Sunset \(formattedTemperature(observationWeatherSnapshot.sunsetTemperatureFahrenheit)) • Low \(formattedTemperature(observationWeatherSnapshot.overnightLowTemperatureFahrenheit))"
+                )
+                .font(compactCaptionFont)
+                .foregroundStyle(.black.opacity(0.74))
+                .fixedSize(horizontal: false, vertical: true)
+                .multilineTextAlignment(.center)
+            } else {
+                Text(observationWeatherMessage.isEmpty ? "Forecast unavailable" : observationWeatherMessage)
+                    .font(compactCaptionFont)
+                    .foregroundStyle(.black.opacity(0.74))
+                    .fixedSize(horizontal: false, vertical: true)
+                    .multilineTextAlignment(.center)
+            }
+        }
+        .padding(8)
+        .frame(maxWidth: .infinity, alignment: .center)
+        .background(singleNightCardBackground(cornerRadius: 18, fill: .thinMaterial))
+    }
+
+    private func cloudSymbolName(for cloudCoverPercent: Int) -> String {
+        switch cloudCoverPercent {
+        case 0 ..< 20:
+            return "sun.max"
+        case 20 ..< 55:
+            return "cloud.sun"
+        case 55 ..< 85:
+            return "cloud"
+        default:
+            return "cloud.fill"
+        }
+    }
+
+    private var weatherSourceMetricBlock: some View {
+        VStack(alignment: .center, spacing: 4) {
+            Text("WEATHER / SUNRISE SOURCE")
+                .font(compactCaptionFont)
+                .foregroundStyle(labelColor.opacity(0.82))
+                .multilineTextAlignment(.center)
+
+            if isResolvingObservationCountry {
+                ProgressView()
+                    .controlSize(.small)
+            } else {
+                Text(weatherSource.name)
+                    .font(compactBodyFont)
+                    .foregroundStyle(.black.opacity(0.88))
+                    .fixedSize(horizontal: false, vertical: true)
+                    .multilineTextAlignment(.center)
+            }
+
+            Text(weatherSourceSubtitle)
+                .font(compactCaptionFont)
+                .foregroundStyle(.black.opacity(0.74))
+                .fixedSize(horizontal: false, vertical: true)
+                .multilineTextAlignment(.center)
+        }
+        .padding(8)
+        .frame(maxWidth: .infinity, alignment: .center)
+        .background(singleNightCardBackground(cornerRadius: 18, fill: .thinMaterial))
     }
 
     private var singleNightMoonInfoBlock: some View {
@@ -2181,28 +2717,44 @@ struct SingleNightObservationWorkspaceView: View {
     }
 
     private var availableTargetTypes: [String] {
-        let presentTypes = Set(targetDatabaseFilteredTargets.map(\.typeName))
-        let orderedTypes = (DSOType.allCases.map(\.displayName) + TransientType.allCases.map(\.displayName))
-            .filter { presentTypes.contains($0) }
-        let extraTypes = presentTypes.subtracting(orderedTypes).subtracting([transientFilterLabel]).sorted()
-        let includesTransientTargets = targetDatabaseFilteredTargets.contains { $0.sourceKind == .transient }
-        return ((includesTransientTargets ? [transientFilterLabel] : []) + orderedTypes + extraTypes)
-            .sorted { left, right in
-                let leftCount = targetTypeCount(for: left)
-                let rightCount = targetTypeCount(for: right)
-                if leftCount == rightCount {
-                    return left.localizedStandardCompare(right) == .orderedAscending
-                }
-                return leftCount > rightCount
-            }
+        availableTargetTypeOptions.map(\.name)
     }
 
-    private func targetTypeCount(for typeName: String) -> Int {
-        if typeName == transientFilterLabel {
-            return targetDatabaseFilteredTargets.filter { $0.sourceKind == .transient }.count
-        }
+    private var availableTargetTypeOptions: [SingleNightTargetTypeFilterOption] {
+        let presentTypes = Set(allTargets.map(\.typeName))
+        let counts = targetTypeCounts(for: targetDatabaseFilteredTargets)
+        let requestedOrder = [
+            DSOType.galaxy.displayName,
+            DSOType.emissionNebula.displayName,
+            DSOType.reflectionNebula.displayName,
+            DSOType.planetaryNebula.displayName,
+            DSOType.darkNebula.displayName,
+            DSOType.supernovaRemnant.displayName,
+            TransientType.supernova.displayName,
+            DSOType.openCluster.displayName,
+            DSOType.globularCluster.displayName,
+            TransientType.comet.displayName,
+            TransientType.asteroid.displayName,
+            DSOType.asterism.displayName,
+            transientFilterLabel
+        ]
+        let orderedTypes = requestedOrder.filter { presentTypes.contains($0) || $0 == transientFilterLabel }
+        let extraTypes = presentTypes.subtracting(orderedTypes).sorted()
+        let includesTransientTargets = allTargets.contains { $0.sourceKind == .transient }
+        let visibleOrderedTypes = orderedTypes.filter { $0 != transientFilterLabel || includesTransientTargets }
+        return (visibleOrderedTypes + extraTypes)
+            .map { SingleNightTargetTypeFilterOption(name: $0, count: counts[$0] ?? 0) }
+    }
 
-        return targetDatabaseFilteredTargets.filter { $0.typeName == typeName }.count
+    private func targetTypeCounts(for targets: [SingleNightTargetChoice]) -> [String: Int] {
+        var counts: [String: Int] = [:]
+        for target in targets {
+            counts[target.typeName, default: 0] += 1
+            if target.sourceKind == .transient {
+                counts[transientFilterLabel, default: 0] += 1
+            }
+        }
+        return counts
     }
 
     private func targetTypeBinding(for typeName: String) -> Binding<Bool> {
@@ -2215,6 +2767,18 @@ struct SingleNightObservationWorkspaceView: View {
                 } else {
                     selectedTargetTypeNames.remove(typeName)
                 }
+            }
+        )
+    }
+
+    private func targetSortBinding(for option: SingleNightTargetSortMode) -> Binding<Bool> {
+        Binding(
+            get: { targetSortMode == option },
+            set: { isSelected in
+                guard isSelected else { return }
+                targetSortMode = option
+                syncSelectedTarget()
+                persistSingleNightDraft()
             }
         )
     }
@@ -2312,7 +2876,7 @@ struct SingleNightObservationWorkspaceView: View {
     }
 
     private func formattedMagnitudeLimit(_ value: Double) -> String {
-        value.formatted(.number.precision(.fractionLength(1)))
+        value.formatted(.number.precision(.fractionLength(0 ... 1)))
     }
 
     private func formattedDegreeLimit(_ value: Double) -> String {
@@ -2376,6 +2940,10 @@ struct SingleNightObservationWorkspaceView: View {
         value.formatted(.number.precision(.fractionLength(0)))
     }
 
+    private func formattedTemperature(_ value: Double) -> String {
+        "\(value.formatted(.number.precision(.fractionLength(0))))°F"
+    }
+
     private func formattedSolarEvent(_ date: Date?) -> String {
         guard let date else { return "--" }
         let formatter = DateFormatter()
@@ -2432,19 +3000,6 @@ struct SingleNightObservationWorkspaceView: View {
         return trimmed.isEmpty ? nil : trimmed
     }
 
-    private func menuWidth(for text: String, minimum: CGFloat, maximum: CGFloat) -> CGFloat {
-#if canImport(AppKit)
-        let measuredWidth = (text as NSString).size(
-            withAttributes: [
-                .font: NSFont.systemFont(ofSize: 13, weight: .regular)
-            ]
-        ).width
-        let paddedWidth = measuredWidth + 82
-#else
-        let paddedWidth = CGFloat(text.count) * 8.0 + 82
-#endif
-        return min(max(ceil(paddedWidth), minimum), maximum)
-    }
 }
 
 private struct SingleNightSaveListSheet: View {
