@@ -327,7 +327,7 @@ struct SingleNightObservationWorkspaceView: View {
     private let observationTimeTextColor = Color(red: 0.24, green: 0.58, blue: 1.0)
     private let sidebarWidth: CGFloat = 320
     private let contentCardMaxWidth: CGFloat = .infinity
-    private let targetFeedVisibleHeight: CGFloat = 86
+    private let targetFeedVisibleHeight: CGFloat = 100
     private let heroMetricWidth: CGFloat = 248
     private let heroMetricHeight: CGFloat = 116
     private let transientFilterLabel = "Transient"
@@ -536,9 +536,9 @@ struct SingleNightObservationWorkspaceView: View {
     }
 
     private func targetFilterMaximumHeight(for availableHeight: CGFloat, compact: Bool) -> CGFloat {
-        let reservedHeight: CGFloat = compact ? 540 : 430
-        let minimumHeight: CGFloat = compact ? 300 : 300
-        let maximumHeight: CGFloat = compact ? 420 : 390
+        let reservedHeight: CGFloat = compact ? 540 : 455
+        let minimumHeight: CGFloat = compact ? 300 : 260
+        let maximumHeight: CGFloat = compact ? 420 : 340
         return min(max(availableHeight - reservedHeight, minimumHeight), maximumHeight)
     }
 
@@ -800,7 +800,6 @@ struct SingleNightObservationWorkspaceView: View {
 
     private var centeredTargetSelectionCard: some View {
         targetSelectionCard
-            .padding(.top, 6)
             .frame(maxWidth: .infinity, alignment: .top)
     }
 
@@ -1133,7 +1132,7 @@ struct SingleNightObservationWorkspaceView: View {
             } else {
                 targetSelectionHeaderControls
                     .frame(maxWidth: .infinity, alignment: .center)
-                    .padding(.bottom, 6)
+                    .padding(.bottom, 4)
 
                 targetFeedList
             }
