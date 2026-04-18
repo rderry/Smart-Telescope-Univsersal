@@ -531,7 +531,7 @@ struct SingleNightObservationWorkspaceView: View {
     }
 
     private func sidebarHeight(for availableHeight: CGFloat) -> CGFloat {
-        min(max(availableHeight - 278, 300), max(300, availableHeight - 142))
+        min(max(availableHeight - 292, 300), max(300, availableHeight - 156))
     }
 
     private func targetFilterMaximumHeight(for availableHeight: CGFloat, compact: Bool) -> CGFloat {
