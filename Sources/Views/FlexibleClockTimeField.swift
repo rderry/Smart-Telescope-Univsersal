@@ -22,7 +22,7 @@ struct FlexibleClockTimeField: View {
     }
 
     private var usesTwentyFourHourClock: Bool {
-        parsedTime?.usesTwentyFourHourClock == true
+        Self.usesTwentyFourHourClock(timeText)
     }
 
     var body: some View {
@@ -150,7 +150,11 @@ struct FlexibleClockTimeField: View {
             return "\(hour):\(minute)"
         }
 
-        return String(filtered.prefix(4))
+        let digits = String(filtered.prefix(4))
+        guard digits.count >= 2 else { return digits }
+
+        let splitIndex = digits.index(digits.startIndex, offsetBy: hourDigitCount(for: digits))
+        return "\(digits[..<splitIndex]):\(digits[splitIndex...])"
     }
 
     private static func parseTime(_ text: String, meridiem: FlexibleClockMeridiem) -> FlexibleClockTime? {
@@ -171,7 +175,11 @@ struct FlexibleClockTimeField: View {
             case 1, 2:
                 parsed = (digits, 0)
             case 3, 4:
-                parsed = (digits / 100, digits % 100)
+                let hourDigits = hourDigitCount(for: trimmed)
+                let hourText = String(trimmed.prefix(hourDigits))
+                let minuteText = String(trimmed.dropFirst(hourDigits))
+                guard let hour = Int(hourText), let minute = Int(minuteText) else { return nil }
+                parsed = (hour, minute)
             default:
                 parsed = nil
             }
@@ -208,6 +216,28 @@ struct FlexibleClockTimeField: View {
             civilianHour: parsed.hour,
             usesTwentyFourHourClock: false
         )
+    }
+
+    private static func usesTwentyFourHourClock(_ text: String) -> Bool {
+        let parts = text
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .split(separator: ":", maxSplits: 1, omittingEmptySubsequences: false)
+        guard let hourText = parts.first,
+              let hour = Int(hourText),
+              (0 ... 23).contains(hour) else {
+            return false
+        }
+
+        return hour == 0 || hour > 12
+    }
+
+    private static func hourDigitCount(for digits: String) -> Int {
+        guard digits.count >= 2 else { return digits.count }
+        let firstTwoDigits = String(digits.prefix(2))
+        if let firstTwoHour = Int(firstTwoDigits), firstTwoHour <= 23 {
+            return 2
+        }
+        return 1
     }
 }
 

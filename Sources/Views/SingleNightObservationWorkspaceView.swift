@@ -77,7 +77,7 @@ private struct SingleNightTargetChoice: Identifiable, Hashable {
     }
 
     var shortenedName: String {
-        let maximumLength = 34
+        let maximumLength = 24
         guard name.count > maximumLength else { return name }
         let trimmedPrefix = String(name.prefix(maximumLength))
             .trimmingCharacters(in: .whitespacesAndNewlines)
@@ -199,6 +199,8 @@ private enum ObservationMeridiem: String, CaseIterable, Identifiable {
 private enum SingleNightTargetSortMode: String, CaseIterable, Identifiable, Equatable {
     case firstViewable
     case zenith
+    case magnitudeBrightest
+    case magnitudeDimmest
     case targetIdentifier
     case targetName
 
@@ -210,6 +212,10 @@ private enum SingleNightTargetSortMode: String, CaseIterable, Identifiable, Equa
             return "First View"
         case .zenith:
             return "Zenith Time"
+        case .magnitudeBrightest:
+            return "Mag Brightest"
+        case .magnitudeDimmest:
+            return "Mag Dimmest"
         case .targetIdentifier:
             return "Target ID"
         case .targetName:
@@ -224,8 +230,10 @@ private struct SingleNightLifecycleModifier: ViewModifier {
     let transientIDs: [String]
     let selectedLocationID: UUID?
     let observationDateTime: Date
+    let telescopeCaptureEndOverrideDate: Date?
     let observationTimeZoneIdentifier: String
     let observationMeridiem: ObservationMeridiem
+    let observationEndMeridiem: ObservationMeridiem
     let selectedTargetTypeNames: Set<String>
     let dsoLimitingMagnitudeText: String
     let targetSkyLimitTexts: [String]
@@ -241,6 +249,7 @@ private struct SingleNightLifecycleModifier: ViewModifier {
     let onObservationDateTimeChanged: () -> Void
     let onFilterInputsChanged: () -> Void
     let onObservationMeridiemChanged: () -> Void
+    let onObservationEndMeridiemChanged: () -> Void
     let onSelectedTargetTypesChanged: () -> Void
     let onSelectedTargetChanged: () -> Void
     let onAddedTargetsChanged: () -> Void
@@ -249,24 +258,54 @@ private struct SingleNightLifecycleModifier: ViewModifier {
     let onDisappearAction: () -> Void
 
     func body(content: Content) -> some View {
+        taskHandlers(
+            filterHandlers(
+                observationHandlers(
+                    targetHandlers(
+                        baseHandlers(content)
+                    )
+                )
+            )
+        )
+    }
+
+    private func baseHandlers<V: View>(_ content: V) -> some View {
         content
             .onAppear(perform: onAppearAction)
             .onChange(of: siteIDs) { _, _ in onSitesChanged() }
             .onChange(of: objectIDs) { _, _ in onTargetDatabaseChanged() }
             .onChange(of: transientIDs) { _, _ in onTargetDatabaseChanged() }
             .onChange(of: selectedLocationID) { _, _ in onSelectedLocationChanged() }
+            .onDisappear(perform: onDisappearAction)
+    }
+
+    private func observationHandlers<V: View>(_ content: V) -> some View {
+        content
             .onChange(of: observationDateTime) { _, _ in onObservationDateTimeChanged() }
+            .onChange(of: telescopeCaptureEndOverrideDate) { _, _ in onFilterInputsChanged() }
             .onChange(of: observationTimeZoneIdentifier) { _, _ in onFilterInputsChanged() }
             .onChange(of: observationMeridiem) { _, _ in onObservationMeridiemChanged() }
+            .onChange(of: observationEndMeridiem) { _, _ in onObservationEndMeridiemChanged() }
+    }
+
+    private func targetHandlers<V: View>(_ content: V) -> some View {
+        content
             .onChange(of: selectedTargetTypeNames) { _, _ in onSelectedTargetTypesChanged() }
-            .onChange(of: dsoLimitingMagnitudeText) { _, _ in onFilterInputsChanged() }
-            .onChange(of: targetSkyLimitTexts) { _, _ in onFilterInputsChanged() }
             .onChange(of: selectedTargetID) { _, _ in onSelectedTargetChanged() }
             .onChange(of: addedTargetIDs) { _, _ in onAddedTargetsChanged() }
             .onChange(of: targetObservationPeriods) { _, _ in onAddedTargetsChanged() }
+    }
+
+    private func filterHandlers<V: View>(_ content: V) -> some View {
+        content
+            .onChange(of: dsoLimitingMagnitudeText) { _, _ in onFilterInputsChanged() }
+            .onChange(of: targetSkyLimitTexts) { _, _ in onFilterInputsChanged() }
+    }
+
+    private func taskHandlers<V: View>(_ content: V) -> some View {
+        content
             .task(id: weatherSourceRequestKey) { await onRefreshWeatherSource() }
             .task(id: observationWeatherRequestKey) { await onRefreshObservationWeather() }
-            .onDisappear(perform: onDisappearAction)
     }
 }
 
@@ -275,7 +314,8 @@ struct SingleNightObservationWorkspaceView: View {
     @Environment(AppRuntimeState.self) private var runtimeState
 
     private enum ObservationTimeField: Hashable {
-        case time
+        case startTime
+        case endTime
     }
 
     @Query(sort: \ObservingSite.name) private var sites: [ObservingSite]
@@ -290,8 +330,11 @@ struct SingleNightObservationWorkspaceView: View {
     @State private var observationDateTime = Date()
     @State private var observationTimeZoneIdentifier = TimeZone.current.identifier
     @State private var telescopeCaptureStartOverrideDate: Date?
+    @State private var telescopeCaptureEndOverrideDate: Date?
     @State private var observationTimeText = ""
+    @State private var observationEndTimeText = ""
     @State private var observationMeridiem = ObservationMeridiem.am
+    @State private var observationEndMeridiem = ObservationMeridiem.am
     @State private var dsoLimitingMagnitudeText = "8"
     @State private var targetAzimuthLowLimitText = ""
     @State private var targetAzimuthHighLimitText = ""
@@ -411,8 +454,10 @@ struct SingleNightObservationWorkspaceView: View {
             transientIDs: transientItems.map(\.feedID),
             selectedLocationID: selectedLocationID,
             observationDateTime: observationDateTime,
+            telescopeCaptureEndOverrideDate: telescopeCaptureEndOverrideDate,
             observationTimeZoneIdentifier: observationTimeZoneIdentifier,
             observationMeridiem: observationMeridiem,
+            observationEndMeridiem: observationEndMeridiem,
             selectedTargetTypeNames: selectedTargetTypeNames,
             dsoLimitingMagnitudeText: dsoLimitingMagnitudeText,
             targetSkyLimitTexts: targetSkyLimitTexts,
@@ -428,6 +473,7 @@ struct SingleNightObservationWorkspaceView: View {
             onObservationDateTimeChanged: handleObservationDateTimeChanged,
             onFilterInputsChanged: handleFilterInputsChanged,
             onObservationMeridiemChanged: { applyObservationTimeEntry() },
+            onObservationEndMeridiemChanged: { applyObservationEndTimeEntry() },
             onSelectedTargetTypesChanged: handleSelectedTargetTypesChanged,
             onSelectedTargetChanged: persistSingleNightDraft,
             onAddedTargetsChanged: persistSingleNightDraft,
@@ -501,6 +547,7 @@ struct SingleNightObservationWorkspaceView: View {
         syncSelectedLocation()
         syncObservationTimeZoneFromLocation()
         syncObservationTimeFieldsFromDate(force: telescopeCaptureStartOverrideDate != nil)
+        syncObservationEndTimeFieldsFromDate(force: telescopeCaptureEndOverrideDate != nil)
         syncSelectedTargetTypes()
         recomputeVisibleTargets()
         persistSingleNightDraft()
@@ -534,6 +581,9 @@ struct SingleNightObservationWorkspaceView: View {
 
         clearTelescopeCaptureStartOverrideIfNeeded()
         syncObservationTimeFieldsFromDate()
+        if !observationEndTimeText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            applyObservationEndTimeEntry(normalizeFields: false)
+        }
         scheduleVisibleTargetRecompute()
         persistSingleNightDraft()
     }
@@ -968,13 +1018,38 @@ struct SingleNightObservationWorkspaceView: View {
     }
 
     private var telescopeImagingStartFields: some View {
+        ViewThatFits(in: .horizontal) {
+            HStack(alignment: .top, spacing: 10) {
+                observationStartTimePair
+                observationEndTimePair
+            }
+
+            VStack(alignment: .center, spacing: 8) {
+                observationStartTimePair
+                observationEndTimePair
+            }
+        }
+        .frame(minWidth: 190, maxWidth: .infinity, alignment: .center)
+    }
+
+    private var observationStartTimePair: some View {
         HStack(alignment: .top, spacing: 8) {
             observationTimeEntry
-                .frame(width: 116, alignment: .leading)
+                .frame(width: 104, alignment: .leading)
 
             observationMeridiemMenu
         }
-        .frame(minWidth: 170, maxWidth: .infinity, alignment: .center)
+        .frame(width: 170, alignment: .center)
+    }
+
+    private var observationEndTimePair: some View {
+        HStack(alignment: .top, spacing: 8) {
+            observationEndTimeEntry
+                .frame(width: 104, alignment: .leading)
+
+            observationEndMeridiemMenu
+        }
+        .frame(width: 170, alignment: .center)
     }
 
     private var dsoLimitingMagnitudeControl: some View {
@@ -1243,9 +1318,9 @@ struct SingleNightObservationWorkspaceView: View {
 
                 targetFeedField(
                     target.shortenedName,
-                    minimumWidth: 118,
-                    idealWidth: 220,
-                    maximumWidth: 240,
+                    minimumWidth: 100,
+                    idealWidth: 150,
+                    maximumWidth: 170,
                     font: compactStrongFont
                 )
                     .layoutPriority(3)
@@ -1292,9 +1367,9 @@ struct SingleNightObservationWorkspaceView: View {
 
                 targetFeedField(
                     target.shortenedName,
-                    minimumWidth: 96,
-                    idealWidth: 170,
-                    maximumWidth: 190,
+                    minimumWidth: 84,
+                    idealWidth: 130,
+                    maximumWidth: 150,
                     font: compactStrongFont
                 )
                     .layoutPriority(3)
@@ -1493,11 +1568,11 @@ struct SingleNightObservationWorkspaceView: View {
             HStack(alignment: .center, spacing: 6) {
                 TextField("HH:MM", text: $observationTimeText)
                     .textFieldStyle(.roundedBorder)
-                    .frame(width: 78)
+                    .frame(width: 74)
                     .multilineTextAlignment(.center)
                     .foregroundStyle(observationTimeTextColor)
                     .tint(observationTimeTextColor)
-                    .focused($focusedObservationTimeField, equals: .time)
+                    .focused($focusedObservationTimeField, equals: .startTime)
                     .onSubmit {
                         applyObservationTimeEntry()
                     }
@@ -1512,8 +1587,49 @@ struct SingleNightObservationWorkspaceView: View {
             applyObservationTimeEntry(normalizeFields: false)
         }
         .onChange(of: focusedObservationTimeField) { _, newValue in
-            if newValue == nil {
+            if newValue != .startTime {
                 applyObservationTimeEntry()
+            }
+        }
+    }
+
+    private var observationEndTimeEntry: some View {
+        VStack(alignment: .center, spacing: 6) {
+            Text("End Time")
+                .font(compactSelectorLabelFont)
+                .foregroundStyle(observationTimeTextColor)
+                .multilineTextAlignment(.center)
+
+            HStack(alignment: .center, spacing: 6) {
+                TextField("HH:MM", text: $observationEndTimeText)
+                    .textFieldStyle(.roundedBorder)
+                    .frame(width: 74)
+                    .multilineTextAlignment(.center)
+                    .foregroundStyle(observationTimeTextColor)
+                    .tint(observationTimeTextColor)
+                    .focused($focusedObservationTimeField, equals: .endTime)
+                    .onSubmit {
+                        applyObservationEndTimeEntry()
+                    }
+            }
+        }
+        .onChange(of: observationEndTimeText) { _, newValue in
+            let filtered = sanitizedObservationTimeInput(newValue)
+            if filtered != newValue {
+                observationEndTimeText = filtered
+                return
+            }
+            if observationEndTimeText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                telescopeCaptureEndOverrideDate = nil
+                scheduleVisibleTargetRecompute()
+                persistSingleNightDraft()
+                return
+            }
+            applyObservationEndTimeEntry(normalizeFields: false)
+        }
+        .onChange(of: focusedObservationTimeField) { _, newValue in
+            if newValue != .endTime {
+                applyObservationEndTimeEntry()
             }
         }
     }
@@ -1536,6 +1652,37 @@ struct SingleNightObservationWorkspaceView: View {
             } label: {
                 selectionMenuLabel(
                     title: observationMeridiem.rawValue,
+                    placeholder: "AM",
+                    expands: false,
+                    maxWidth: 52,
+                    compact: true
+                )
+            }
+            .buttonStyle(.plain)
+            .disabled(usesTwentyFourHourClock)
+            .opacity(usesTwentyFourHourClock ? 0.45 : 1)
+        }
+        .frame(width: 56, alignment: .leading)
+    }
+
+    private var observationEndMeridiemMenu: some View {
+        let usesTwentyFourHourClock = observationEndTimeUsesTwentyFourHourClock
+
+        return VStack(alignment: .center, spacing: 6) {
+            Text("AM/PM")
+                .font(compactSelectorLabelFont)
+                .foregroundStyle(usesTwentyFourHourClock ? Color.gray : observationTimeTextColor)
+                .multilineTextAlignment(.center)
+
+            Menu {
+                ForEach(ObservationMeridiem.allCases) { meridiem in
+                    Button(meridiem.rawValue) {
+                        observationEndMeridiem = meridiem
+                    }
+                }
+            } label: {
+                selectionMenuLabel(
+                    title: observationEndMeridiem.rawValue,
                     placeholder: "AM",
                     expands: false,
                     maxWidth: 52,
@@ -1695,9 +1842,15 @@ struct SingleNightObservationWorkspaceView: View {
         }
 
         let imagingStartDate = normalizedObservationDate(telescopeCaptureStartOverrideDate ?? referenceDate)
+        let constrainedStart = max(calculatedStart, imagingStartDate)
+        let imagingEndDate = telescopeCaptureEndOverrideDate.map(normalizedObservationDate)
+        let constrainedEnd = [calculatedEvents.end, imagingEndDate]
+            .compactMap { $0 }
+            .filter { $0 > constrainedStart }
+            .min()
         return SunBelowHorizonEvents(
-            start: max(calculatedStart, imagingStartDate),
-            end: calculatedEvents.end
+            start: constrainedStart,
+            end: constrainedEnd ?? calculatedEvents.end
         )
     }
 
@@ -1980,6 +2133,7 @@ struct SingleNightObservationWorkspaceView: View {
         observationDateTime = draft.observationDateTime
         observationTimeZoneIdentifier = draft.observationTimeZoneIdentifier
         telescopeCaptureStartOverrideDate = draft.telescopeCaptureStartOverrideDate
+        telescopeCaptureEndOverrideDate = draft.telescopeCaptureEndOverrideDate
         dsoLimitingMagnitudeText = draft.dsoLimitingMagnitudeText
         targetAzimuthLowLimitText = draft.targetAzimuthLowLimitText
         targetAzimuthHighLimitText = draft.targetAzimuthHighLimitText
@@ -2000,6 +2154,7 @@ struct SingleNightObservationWorkspaceView: View {
             observationDateTime: observationDateTime,
             observationTimeZoneIdentifier: observationTimeZoneIdentifier,
             telescopeCaptureStartOverrideDate: telescopeCaptureStartOverrideDate,
+            telescopeCaptureEndOverrideDate: telescopeCaptureEndOverrideDate,
             dsoLimitingMagnitudeText: dsoLimitingMagnitudeText,
             targetAzimuthLowLimitText: targetAzimuthLowLimitText,
             targetAzimuthHighLimitText: targetAzimuthHighLimitText,
@@ -2045,7 +2200,9 @@ struct SingleNightObservationWorkspaceView: View {
         observationDateTime = Date()
         observationTimeZoneIdentifier = TimeZone.current.identifier
         telescopeCaptureStartOverrideDate = nil
+        telescopeCaptureEndOverrideDate = nil
         observationTimeText = ""
+        observationEndTimeText = ""
         dsoLimitingMagnitudeText = formattedMagnitudeLimit(Self.defaultDSOLimitingMagnitude)
         targetAzimuthLowLimitText = ""
         targetAzimuthHighLimitText = ""
@@ -2288,13 +2445,27 @@ struct SingleNightObservationWorkspaceView: View {
         observationMeridiem = hour24 < 12 ? .am : .pm
     }
 
+    private func syncObservationEndTimeFieldsFromDate(force: Bool = false) {
+        guard let telescopeCaptureEndOverrideDate,
+              force || !observationEndTimeText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            return
+        }
+
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = observationTimeZone
+        let components = calendar.dateComponents([.hour, .minute], from: telescopeCaptureEndOverrideDate)
+        let hour24 = components.hour ?? 0
+        observationEndTimeText = String(format: "%02d:%02d", civilianHour(from24Hour: hour24), components.minute ?? 0)
+        observationEndMeridiem = hour24 < 12 ? .am : .pm
+    }
+
     private func sanitizedObservationTimeInput(_ value: String) -> String {
         let allowed = value.filter { $0.isNumber || $0 == ":" }
         guard allowed.contains(":") else {
             let digits = String(allowed.filter(\.isNumber).prefix(4))
-            guard digits.count > 2 else { return digits }
+            guard digits.count >= 2 else { return digits }
 
-            let splitIndex = digits.count == 3 ? digits.index(after: digits.startIndex) : digits.index(digits.startIndex, offsetBy: 2)
+            let splitIndex = digits.index(digits.startIndex, offsetBy: observationHourDigitCount(for: digits))
             return "\(digits[..<splitIndex]):\(digits[splitIndex...])"
         }
 
@@ -2304,8 +2475,17 @@ struct SingleNightObservationWorkspaceView: View {
         return "\(hour):\(minute)"
     }
 
-    private func parsedObservationTimeEntry() -> (hour: Int, minute: Int)? {
-        let parts = observationTimeText
+    private func observationHourDigitCount(for digits: String) -> Int {
+        guard digits.count >= 2 else { return digits.count }
+        let firstTwoDigits = String(digits.prefix(2))
+        if let firstTwoHour = Int(firstTwoDigits), firstTwoHour <= 23 {
+            return 2
+        }
+        return 1
+    }
+
+    private func parsedObservationTimeEntry(_ text: String) -> (hour: Int, minute: Int)? {
+        let parts = text
             .trimmingCharacters(in: .whitespacesAndNewlines)
             .split(separator: ":", maxSplits: 1, omittingEmptySubsequences: false)
 
@@ -2320,8 +2500,11 @@ struct SingleNightObservationWorkspaceView: View {
         return (hour, minute)
     }
 
-    private func parsedObservationClockTime() -> (hour24: Int, displayHour: Int, minute: Int, usesMilitaryTime: Bool)? {
-        guard let parsedTime = parsedObservationTimeEntry() else {
+    private func parsedObservationClockTime(
+        text: String,
+        meridiem: ObservationMeridiem
+    ) -> (hour24: Int, displayHour: Int, minute: Int, usesMilitaryTime: Bool)? {
+        guard let parsedTime = parsedObservationTimeEntry(text) else {
             return nil
         }
 
@@ -2336,11 +2519,28 @@ struct SingleNightObservationWorkspaceView: View {
             return nil
         }
 
-        return (hour24(fromCivilianHour: hour, meridiem: observationMeridiem), hour, minute, false)
+        return (hour24(fromCivilianHour: hour, meridiem: meridiem), hour, minute, false)
     }
 
     private var observationTimeUsesTwentyFourHourClock: Bool {
-        parsedObservationClockTime()?.usesMilitaryTime == true
+        observationTextUsesTwentyFourHourClock(observationTimeText)
+    }
+
+    private var observationEndTimeUsesTwentyFourHourClock: Bool {
+        observationTextUsesTwentyFourHourClock(observationEndTimeText)
+    }
+
+    private func observationTextUsesTwentyFourHourClock(_ text: String) -> Bool {
+        let parts = text
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .split(separator: ":", maxSplits: 1, omittingEmptySubsequences: false)
+        guard let hourText = parts.first,
+              let hour = Int(hourText),
+              (0 ... 23).contains(hour) else {
+            return false
+        }
+
+        return hour == 0 || hour > 12
     }
 
     private func civilianHour(from24Hour hour: Int) -> Int {
@@ -2359,7 +2559,7 @@ struct SingleNightObservationWorkspaceView: View {
     }
 
     private func applyObservationTimeEntry(normalizeFields: Bool = true) {
-        guard let parsedTime = parsedObservationClockTime() else {
+        guard let parsedTime = parsedObservationClockTime(text: observationTimeText, meridiem: observationMeridiem) else {
             return
         }
 
@@ -2384,6 +2584,44 @@ struct SingleNightObservationWorkspaceView: View {
             observationDateTime = updatedDate
         } else {
             telescopeCaptureStartOverrideDate = observationDateTime
+            scheduleVisibleTargetRecompute()
+        }
+
+        if !observationEndTimeText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            applyObservationEndTimeEntry(normalizeFields: false)
+        }
+    }
+
+    private func applyObservationEndTimeEntry(normalizeFields: Bool = true) {
+        guard let parsedTime = parsedObservationClockTime(text: observationEndTimeText, meridiem: observationEndMeridiem) else {
+            return
+        }
+
+        let hour = parsedTime.displayHour
+        let minute = parsedTime.minute
+        let hour24 = parsedTime.hour24
+        observationEndMeridiem = hour24 < 12 ? .am : .pm
+        if normalizeFields {
+            observationEndTimeText = String(format: "%02d:%02d", parsedTime.usesMilitaryTime ? hour24 : hour, minute)
+        }
+
+        let windowStart = normalizedObservationDate(telescopeCaptureStartOverrideDate ?? referenceDate)
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = observationTimeZone
+        var components = calendar.dateComponents([.year, .month, .day], from: windowStart)
+        components.hour = hour24
+        components.minute = minute
+        components.second = 0
+
+        guard var updatedDate = calendar.date(from: components) else { return }
+        if updatedDate <= windowStart {
+            updatedDate = calendar.date(byAdding: .day, value: 1, to: updatedDate)
+                ?? updatedDate.addingTimeInterval(24 * 60 * 60)
+        }
+
+        if updatedDate != telescopeCaptureEndOverrideDate {
+            telescopeCaptureEndOverrideDate = updatedDate
+        } else {
             scheduleVisibleTargetRecompute()
         }
     }
@@ -2524,6 +2762,14 @@ struct SingleNightObservationWorkspaceView: View {
             if let dateOrder = compareOptionalDates(lhsVisibility?.zenithDate, rhsVisibility?.zenithDate, ascending: true) {
                 return dateOrder
             }
+        case .magnitudeBrightest:
+            if let magnitudeOrder = compareOptionalMagnitudes(lhs.magnitude, rhs.magnitude, ascending: true) {
+                return magnitudeOrder
+            }
+        case .magnitudeDimmest:
+            if let magnitudeOrder = compareOptionalMagnitudes(lhs.magnitude, rhs.magnitude, ascending: false) {
+                return magnitudeOrder
+            }
         case .targetIdentifier:
             return compareTargetsByIdentifier(lhs, rhs)
         case .targetName:
@@ -2531,6 +2777,19 @@ struct SingleNightObservationWorkspaceView: View {
         }
 
         return compareTargetsByIdentifier(lhs, rhs)
+    }
+
+    private func compareOptionalMagnitudes(_ lhs: Double?, _ rhs: Double?, ascending: Bool) -> Bool? {
+        switch (lhs, rhs) {
+        case let (.some(lhsMagnitude), .some(rhsMagnitude)) where lhsMagnitude != rhsMagnitude:
+            return ascending ? lhsMagnitude < rhsMagnitude : lhsMagnitude > rhsMagnitude
+        case (.some, nil):
+            return true
+        case (nil, .some):
+            return false
+        default:
+            return nil
+        }
     }
 
     private func compareOptionalDates(_ lhs: Date?, _ rhs: Date?, ascending: Bool) -> Bool? {

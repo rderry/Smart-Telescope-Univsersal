@@ -44,6 +44,7 @@ struct SingleNightObservationDraft {
     var observationDateTime: Date
     var observationTimeZoneIdentifier: String
     var telescopeCaptureStartOverrideDate: Date?
+    var telescopeCaptureEndOverrideDate: Date?
     var dsoLimitingMagnitudeText: String
     var targetAzimuthLowLimitText: String
     var targetAzimuthHighLimitText: String
