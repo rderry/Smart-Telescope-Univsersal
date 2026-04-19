@@ -51,6 +51,7 @@
 		BF7C718503292CEEE8344532 /* MainLandingPageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17B144CFBDCB627DBF69E9A5 /* MainLandingPageView.swift */; };
 		E5019DB6B73EE5E5F6DAB0B6 /* MultiNightObservationWorkspaceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 88C2C17AF488B484F0BD37AF /* MultiNightObservationWorkspaceView.swift */; };
 		B920B11EAF7BD3F25651C237 /* PageChromeHeader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0FDEE6A1EA20469B34B56424 /* PageChromeHeader.swift */; };
+		C1D2E3F40516273849A5B6C7 /* FlexibleClockTimeField.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB7C9D01E2F3456789ABCDEF /* FlexibleClockTimeField.swift */; };
 		9543A866A8CD24A007D1C16A /* PlanObservationWorkspaceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB59160CB33525702FE10E4F /* PlanObservationWorkspaceView.swift */; };
 		72F12D4EBD5A84F1E68F08D9 /* ProfilesWorkspaceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 324A901DE68FD8A21ED18FF8 /* ProfilesWorkspaceView.swift */; };
 		DCC3F0DBBC9CFB0D4CE92FB9 /* SetupLocationsWorkspaceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5715384C2933C46A527587D6 /* SetupLocationsWorkspaceView.swift */; };
@@ -111,6 +112,7 @@
 		17B144CFBDCB627DBF69E9A5 /* MainLandingPageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainLandingPageView.swift; sourceTree = "<group>"; };
 		88C2C17AF488B484F0BD37AF /* MultiNightObservationWorkspaceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MultiNightObservationWorkspaceView.swift; sourceTree = "<group>"; };
 		0FDEE6A1EA20469B34B56424 /* PageChromeHeader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PageChromeHeader.swift; sourceTree = "<group>"; };
+		AB7C9D01E2F3456789ABCDEF /* FlexibleClockTimeField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlexibleClockTimeField.swift; sourceTree = "<group>"; };
 		AB59160CB33525702FE10E4F /* PlanObservationWorkspaceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanObservationWorkspaceView.swift; sourceTree = "<group>"; };
 		324A901DE68FD8A21ED18FF8 /* ProfilesWorkspaceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfilesWorkspaceView.swift; sourceTree = "<group>"; };
 		5715384C2933C46A527587D6 /* SetupLocationsWorkspaceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SetupLocationsWorkspaceView.swift; sourceTree = "<group>"; };
@@ -202,6 +204,7 @@
 			17B144CFBDCB627DBF69E9A5 /* MainLandingPageView.swift */, 
 			88C2C17AF488B484F0BD37AF /* MultiNightObservationWorkspaceView.swift */,
 			0FDEE6A1EA20469B34B56424 /* PageChromeHeader.swift */, 
+			AB7C9D01E2F3456789ABCDEF /* FlexibleClockTimeField.swift */,
 			AB59160CB33525702FE10E4F /* PlanObservationWorkspaceView.swift */, 
 			324A901DE68FD8A21ED18FF8 /* ProfilesWorkspaceView.swift */, 
 			5715384C2933C46A527587D6 /* SetupLocationsWorkspaceView.swift */, 
@@ -341,6 +344,7 @@
 			BF7C718503292CEEE8344532 /* MainLandingPageView.swift in Sources */, 
 			E5019DB6B73EE5E5F6DAB0B6 /* MultiNightObservationWorkspaceView.swift in Sources */,
 			B920B11EAF7BD3F25651C237 /* PageChromeHeader.swift in Sources */, 
+			C1D2E3F40516273849A5B6C7 /* FlexibleClockTimeField.swift in Sources */,
 			9543A866A8CD24A007D1C16A /* PlanObservationWorkspaceView.swift in Sources */, 
 			72F12D4EBD5A84F1E68F08D9 /* ProfilesWorkspaceView.swift in Sources */, 
 			DCC3F0DBBC9CFB0D4CE92FB9 /* SetupLocationsWorkspaceView.swift in Sources */, 

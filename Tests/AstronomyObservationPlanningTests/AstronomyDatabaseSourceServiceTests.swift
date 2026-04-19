@@ -13,6 +13,13 @@ final class AstronomyDatabaseSourceServiceTests: XCTestCase {
         XCTAssertTrue(ids.contains("minor-planet-center"))
         XCTAssertGreaterThanOrEqual(AstronomyDatabaseSourceService.sources(in: .universe).count, 5)
         XCTAssertGreaterThanOrEqual(AstronomyDatabaseSourceService.sources(in: .solarSystem).count, 3)
+        XCTAssertTrue(
+            AstronomyDatabaseSourceService.sources.contains {
+                $0.id == "nasa-ipac-ned"
+                && $0.appUse.localizedCaseInsensitiveContains("Primary online galaxy")
+                && $0.accessDescription.localizedCaseInsensitiveContains("TAP")
+            }
+        )
     }
 
     func testRegistryIncludesCompiledLocalPlanningCatalogs() {

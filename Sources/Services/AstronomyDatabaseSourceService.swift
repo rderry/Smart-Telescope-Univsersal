@@ -68,11 +68,11 @@ enum AstronomyDatabaseSourceService {
             name: "NASA/IPAC Extragalactic Database",
             provider: "NASA/IPAC",
             domain: .universe,
-            scaleDescription: "Large extragalactic object database assembled from surveys and literature.",
-            contentsDescription: "Galaxies, quasars, extragalactic distances, redshifts, photometry, and literature links.",
-            accessDescription: "Remote query source; use for extragalactic enrichment rather than offline bundling.",
+            scaleDescription: "Largest practical public extragalactic backbone found: current NED holdings list more than 1.1 billion distinct objects.",
+            contentsDescription: "Galaxies, quasars, extragalactic distances, redshifts, photometry, diameters, spectra, images, and literature links.",
+            accessDescription: "Public remote TAP/API query source; use constrained searches because NED limits high-volume automated access.",
             sourceURL: URL(string: "https://ned.ipac.caltech.edu/")!,
-            appUse: "Future galaxy and quasar detail source."
+            appUse: "Primary online galaxy database for lookup and enrichment; the app keeps a smaller local observing catalog for offline planning."
         ),
         AstronomyDatabaseSource(
             id: "nasa-exoplanet-archive",
@@ -158,9 +158,9 @@ enum AstronomyDatabaseSourceService {
             domain: .planningCatalog,
             scaleDescription: "Practical amateur-observing deep-sky catalog for NGC, IC, Messier, and addendum targets.",
             contentsDescription: "NGC/IC objects, Messier cross-matches, addendum targets, common names, coordinates, magnitudes, and object types.",
-            accessDescription: "Remote refresh source; current app uses OpenNGC main and addendum files for deep-sky target updates, replaces stale unretained targets, and keeps selected targets local until removed.",
+            accessDescription: "Remote refresh source for compact offline planning targets; NED is the preferred online galaxy database.",
             sourceURL: URL(string: "https://github.com/mattiaverga/OpenNGC")!,
-            appUse: "Current deep-sky target database backbone."
+            appUse: "Offline/common-target seed for the current target list while NED remains the online galaxy backbone."
         ),
         AstronomyDatabaseSource(
             id: "aavso-vsx",

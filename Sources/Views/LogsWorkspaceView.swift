@@ -189,14 +189,14 @@ private struct NightLogEditorView: View {
                         ViewThatFits(in: .horizontal) {
                             HStack(spacing: 12) {
                                 DatePicker("Date", selection: $log.observingDate, displayedComponents: .date)
-                                DatePicker("Start", selection: actualStartBinding, displayedComponents: [.date, .hourAndMinute])
-                                DatePicker("End", selection: actualEndBinding, displayedComponents: [.date, .hourAndMinute])
+                                FlexibleDateTimeField(title: "Start", selection: actualStartBinding)
+                                FlexibleDateTimeField(title: "End", selection: actualEndBinding)
                             }
 
                             VStack(alignment: .leading, spacing: 12) {
                                 DatePicker("Date", selection: $log.observingDate, displayedComponents: .date)
-                                DatePicker("Start", selection: actualStartBinding, displayedComponents: [.date, .hourAndMinute])
-                                DatePicker("End", selection: actualEndBinding, displayedComponents: [.date, .hourAndMinute])
+                                FlexibleDateTimeField(title: "Start", selection: actualStartBinding)
+                                FlexibleDateTimeField(title: "End", selection: actualEndBinding)
                             }
                         }
                         TextField("Summary notes", text: $log.summaryNotes, axis: .vertical)

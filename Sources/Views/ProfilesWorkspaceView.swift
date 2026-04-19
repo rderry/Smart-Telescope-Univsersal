@@ -1197,14 +1197,16 @@ struct ProfilesWorkspaceView: View {
                 Spacer(minLength: 0)
             }
 
-            DatePicker(
-                "Telescope capture can start at",
+            FlexibleClockTimeField(
+                title: "Telescope capture can start at",
                 selection: $captureStartDate,
-                displayedComponents: [.hourAndMinute]
+                width: 190,
+                labelColor: .white.opacity(0.90),
+                textColor: .white,
+                helperColor: .white.opacity(0.76),
+                titleFont: AppTypography.body,
+                showsHelper: true
             )
-            .datePickerStyle(.field)
-            .font(AppTypography.body)
-            .foregroundStyle(.white)
 
             Text("This time will be used as the Sun Below Horizon start for the planner.")
                 .font(.system(size: 12.5, weight: .regular, design: .rounded))

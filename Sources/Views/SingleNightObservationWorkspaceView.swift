@@ -337,7 +337,7 @@ struct SingleNightObservationWorkspaceView: View {
     private let transientFilterLabel = "Transient"
     private static let defaultDSOLimitingMagnitude = 8.0
     private static let minimumDSOLimitingMagnitude = -2.0
-    private static let maximumDSOLimitingMagnitude = 16.0
+    private static let maximumDSOLimitingMagnitude = 17.0
     private static let defaultTargetAzimuthLowLimit = 0.0
     private static let defaultTargetAzimuthHighLimit = 360.0
     private static let defaultTargetAltitudeLowLimit = 0.0
@@ -1229,6 +1229,7 @@ struct SingleNightObservationWorkspaceView: View {
 
     private func targetFeedRowContent(for target: SingleNightTargetChoice) -> some View {
         let visibilityText = targetVisibilitySummary(for: target)
+        let azimuthText = targetAzimuthSummary(for: target)
 
         return ViewThatFits(in: .horizontal) {
             HStack(alignment: .center, spacing: 10) {
@@ -1270,6 +1271,10 @@ struct SingleNightObservationWorkspaceView: View {
                         .layoutPriority(2)
                 }
 
+                if let azimuthText {
+                    targetFeedInfoField(azimuthText, maximumWidth: 118)
+                }
+
                 Spacer(minLength: 0)
 
                 targetMagnitudeBadge(for: target)
@@ -1297,6 +1302,10 @@ struct SingleNightObservationWorkspaceView: View {
                 if let visibilityText {
                     targetFeedTimeField(visibilityText, maximumWidth: 190)
                         .layoutPriority(2)
+                }
+
+                if let azimuthText {
+                    targetFeedInfoField(azimuthText, maximumWidth: 104)
                 }
 
                 Spacer(minLength: 0)
@@ -1346,6 +1355,16 @@ struct SingleNightObservationWorkspaceView: View {
             .minimumScaleFactor(0.70)
             .truncationMode(.tail)
             .frame(minWidth: 118, idealWidth: maximumWidth, maxWidth: maximumWidth, alignment: .leading)
+    }
+
+    private func targetFeedInfoField(_ text: String, maximumWidth: CGFloat) -> some View {
+        Text(text)
+            .font(.system(size: 14, weight: .semibold, design: .rounded))
+            .foregroundStyle(.white)
+            .lineLimit(1)
+            .minimumScaleFactor(0.70)
+            .truncationMode(.tail)
+            .frame(minWidth: 88, idealWidth: maximumWidth, maxWidth: maximumWidth, alignment: .leading)
     }
 
     private var targetIdentifierMenu: some View {
@@ -1500,10 +1519,12 @@ struct SingleNightObservationWorkspaceView: View {
     }
 
     private var observationMeridiemMenu: some View {
-        VStack(alignment: .center, spacing: 6) {
+        let usesTwentyFourHourClock = observationTimeUsesTwentyFourHourClock
+
+        return VStack(alignment: .center, spacing: 6) {
             Text("AM/PM")
                 .font(compactSelectorLabelFont)
-                .foregroundStyle(observationTimeTextColor)
+                .foregroundStyle(usesTwentyFourHourClock ? Color.gray : observationTimeTextColor)
                 .multilineTextAlignment(.center)
 
             Menu {
@@ -1522,6 +1543,8 @@ struct SingleNightObservationWorkspaceView: View {
                 )
             }
             .buttonStyle(.plain)
+            .disabled(usesTwentyFourHourClock)
+            .opacity(usesTwentyFourHourClock ? 0.45 : 1)
         }
         .frame(width: 56, alignment: .leading)
     }
@@ -2316,6 +2339,10 @@ struct SingleNightObservationWorkspaceView: View {
         return (hour24(fromCivilianHour: hour, meridiem: observationMeridiem), hour, minute, false)
     }
 
+    private var observationTimeUsesTwentyFourHourClock: Bool {
+        parsedObservationClockTime()?.usesMilitaryTime == true
+    }
+
     private func civilianHour(from24Hour hour: Int) -> Int {
         let hour = hour % 24
         let civilianHour = hour % 12
@@ -2543,6 +2570,11 @@ struct SingleNightObservationWorkspaceView: View {
         let altitudeText = formattedWholeAngle(visibility.zenithAltitudeDegrees)
 
         return "First \(firstVisibleText) • Zenith \(zenithText) @ \(altitudeText)°"
+    }
+
+    private func targetAzimuthSummary(for target: SingleNightTargetChoice) -> String? {
+        guard let skyPosition = visibleTargetMetadata[target.id]?.skyPosition else { return nil }
+        return "Az \(formattedWholeAngle(skyPosition.azimuthDegrees))° \(skyPosition.magneticCardinalDirection)"
     }
 
     private func targetMetricBlock(title: String, value: String) -> some View {
@@ -3169,6 +3201,8 @@ struct SingleNightObservationWorkspaceView: View {
 }
 
 private struct SingleNightObservationPeriodSheet: View {
+    private static let midnightBlue = Color(red: 0.098, green: 0.098, blue: 0.439)
+
     let target: SingleNightTargetChoice
     let referenceDate: Date
     let timeZone: TimeZone
@@ -3215,13 +3249,13 @@ private struct SingleNightObservationPeriodSheet: View {
 
                 Text("\(target.identifier) • \(target.shortenedName)")
                     .font(AppTypography.bodyStrong)
-                    .foregroundStyle(.white.opacity(0.95))
+                    .foregroundStyle(Self.midnightBlue)
                     .lineLimit(1)
                     .minimumScaleFactor(0.75)
 
                 Text("Enter 24-hour time such as 21:30, or enter 1-12 and choose AM or PM.")
                     .font(AppTypography.body)
-                    .foregroundStyle(.white.opacity(0.82))
+                    .foregroundStyle(Self.midnightBlue)
                     .fixedSize(horizontal: false, vertical: true)
             }
 
@@ -3242,7 +3276,7 @@ private struct SingleNightObservationPeriodSheet: View {
             if let errorMessage {
                 Text(errorMessage)
                     .font(AppTypography.body)
-                    .foregroundStyle(.red.opacity(0.92))
+                    .foregroundStyle(Self.midnightBlue)
                     .fixedSize(horizontal: false, vertical: true)
             }
 
@@ -3253,11 +3287,13 @@ private struct SingleNightObservationPeriodSheet: View {
                     onCancel()
                 }
                 .buttonStyle(.bordered)
+                .foregroundStyle(Self.midnightBlue)
 
                 Button("Continue") {
                     continueWithObservationPeriod()
                 }
                 .buttonStyle(.borderedProminent)
+                .foregroundStyle(Self.midnightBlue)
             }
         }
         .padding(22)
@@ -3290,15 +3326,19 @@ private struct SingleNightObservationPeriodSheet: View {
         text: Binding<String>,
         meridiem: Binding<ObservationMeridiem>
     ) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
+        let usesTwentyFourHourClock = Self.usesTwentyFourHourClock(text.wrappedValue)
+
+        return VStack(alignment: .leading, spacing: 6) {
             Text(title)
                 .font(AppTypography.bodyStrong)
-                .foregroundStyle(.white)
+                .foregroundStyle(Self.midnightBlue)
 
             HStack(spacing: 10) {
                 TextField("HH:MM", text: text)
                     .textFieldStyle(.roundedBorder)
                     .frame(width: 120)
+                    .foregroundStyle(Self.midnightBlue)
+                    .tint(Self.midnightBlue)
                     .onChange(of: text.wrappedValue) { _, newValue in
                         let filtered = Self.sanitizedTimeInput(newValue)
                         if filtered != newValue {
@@ -3313,10 +3353,14 @@ private struct SingleNightObservationPeriodSheet: View {
                 }
                 .labelsHidden()
                 .frame(width: 84)
+                .disabled(usesTwentyFourHourClock)
+                .opacity(usesTwentyFourHourClock ? 0.45 : 1)
+                .foregroundStyle(usesTwentyFourHourClock ? Color.gray : Self.midnightBlue)
+                .tint(Self.midnightBlue)
 
                 Text("24-hour entries ignore AM/PM.")
                     .font(.system(size: 12, weight: .regular, design: .rounded))
-                    .foregroundStyle(.white.opacity(0.70))
+                    .foregroundStyle(Self.midnightBlue.opacity(usesTwentyFourHourClock ? 0.70 : 0.82))
             }
         }
     }
@@ -3406,6 +3450,19 @@ private struct SingleNightObservationPeriodSheet: View {
         case .pm:
             return .valid(hour24: hour == 12 ? 12 : hour + 12, minute: minute)
         }
+    }
+
+    private static func usesTwentyFourHourClock(_ text: String) -> Bool {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        let parts = trimmed.split(separator: ":", maxSplits: 1, omittingEmptySubsequences: false)
+        guard parts.count == 2,
+              let hour = Int(parts[0]),
+              let minute = Int(parts[1]),
+              (0 ... 59).contains(minute) else {
+            return false
+        }
+
+        return hour == 0 || hour > 12
     }
 
     private static func meridiem(for date: Date, timeZone: TimeZone) -> ObservationMeridiem? {

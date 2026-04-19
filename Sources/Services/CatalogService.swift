@@ -21,6 +21,8 @@ enum CatalogService {
     private static let openNGCAddendumURL = URL(string: "https://raw.githubusercontent.com/mattiaverga/OpenNGC/master/database_files/addendum.csv")!
     private static let openNGCSourceName = "OpenNGC / BigSkyAstro Local Common Catalog"
     private static let openNGCSourceURL = "https://github.com/mattiaverga/OpenNGC"
+    private static let nedGalaxySourceName = "NASA/IPAC NED Galaxy Reference + OpenNGC Magnitudes"
+    private static let nedGalaxySourceURL = "https://ned.ipac.caltech.edu/"
     private static let session = RemoteServiceSessionFactory.makeSession(
         timeoutIntervalForRequest: 15,
         timeoutIntervalForResource: 30
@@ -178,16 +180,24 @@ enum CatalogService {
     }
 
     private static func sourceName(for record: CatalogSeedRecord) -> String {
+        if record.objectType == .galaxy {
+            return nedGalaxySourceName
+        }
+
         switch record.catalogFamily {
         case .messier, .ngc, .caldwell, .ic, .sharpless2, .lbn, .openNGCAddendum:
-            openNGCSourceName
+            return openNGCSourceName
         }
     }
 
     private static func sourceURLString(for record: CatalogSeedRecord) -> String {
+        if record.objectType == .galaxy {
+            return nedGalaxySourceURL
+        }
+
         switch record.catalogFamily {
         case .messier, .ngc, .caldwell, .ic, .sharpless2, .lbn, .openNGCAddendum:
-            openNGCSourceURL
+            return openNGCSourceURL
         }
     }
 

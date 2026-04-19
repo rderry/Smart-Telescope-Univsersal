@@ -430,8 +430,8 @@ private struct ObservationPlanDetailView: View {
     private var timeInputs: some View {
         Group {
             labeledDateField("Date", selection: $plan.observingDate, components: .date, width: 220)
-            labeledDateField("Start Time", selection: $plan.startTime, components: .hourAndMinute, width: 170)
-            labeledDateField("End Time", selection: $plan.endTime, components: .hourAndMinute, width: 170)
+            FlexibleClockTimeField(title: "Start Time", selection: $plan.startTime, width: 170)
+            FlexibleClockTimeField(title: "End Time", selection: $plan.endTime, width: 170)
         }
     }
 
@@ -635,7 +635,7 @@ private struct ObservationPlanDetailView: View {
         Group {
             TextField("Catalog id or common name", text: $catalogQuery)
 
-            DatePicker("Lookup Time", selection: $lookupTime, displayedComponents: [.hourAndMinute])
+            FlexibleClockTimeField(title: "Lookup Time", selection: $lookupTime, width: 170)
         }
     }
 

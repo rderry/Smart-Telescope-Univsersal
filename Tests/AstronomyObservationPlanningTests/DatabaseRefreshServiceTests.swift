@@ -99,6 +99,7 @@ final class DatabaseRefreshServiceTests: XCTestCase {
         XCTAssertFalse(objects.contains { $0.catalogID == "NGC 9999" })
         XCTAssertTrue(objects.contains { $0.catalogID == "NGC 8888" })
         XCTAssertTrue(objects.contains { $0.catalogID == "M31" })
+        XCTAssertEqual(objects.first { $0.catalogID == "M31" }?.sourceName, "NASA/IPAC NED Galaxy Reference + OpenNGC Magnitudes")
     }
 
     func testJPLCometParserBuildsCometFeedRecord() throws {
