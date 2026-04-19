@@ -3490,6 +3490,8 @@ private struct SingleNightObservationPeriodSheet: View {
 }
 
 private struct SingleNightSaveListSheet: View {
+    private static let midnightBlue = Color(red: 0.098, green: 0.098, blue: 0.439)
+
     let title: String
     let subtitle: String
     let locationName: String?
@@ -3523,10 +3525,12 @@ private struct SingleNightSaveListSheet: View {
             VStack(alignment: .leading, spacing: 8) {
                 Text("Saved List Name")
                     .font(AppTypography.bodyStrong)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(Self.midnightBlue)
 
                 TextField("Enter a name (example: Spring Galaxies)", text: $name)
                     .textFieldStyle(.roundedBorder)
+                    .foregroundStyle(Self.midnightBlue)
+                    .tint(Self.midnightBlue)
             }
 
             HStack {
